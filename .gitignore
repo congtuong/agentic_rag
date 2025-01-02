@@ -1,0 +1,6 @@
+**/__pycache__/
+*.db
+*.lock
+logs/
+*.env
+vectordb/milvus/volumes
