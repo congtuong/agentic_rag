@@ -1,0 +1,20 @@
+version: "3"
+
+services:
+  postgres-proj:
+    container_name: postgres_proj
+    image: postgres:lastest
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: proj
+      POSTGRES_PASSWORD: proj
+      POSTGRES_DB: proj
+
+    networks:
+      - proj
+
+networks:
+  proj:
+    driver: bridge
+    external: true

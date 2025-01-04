@@ -25,7 +25,7 @@ from llama_index.core.retrievers import (
     KeywordTableSimpleRetriever,
 )
 
-from src.rag import ContextualRAG
+from .contextual_rag import ContextualRAG
 from utils.logger import get_logger
 from utils.json_extractor import extract_json
 
@@ -46,17 +46,17 @@ class AgenticRAG:
         from llama_index.core.tools.tool_spec.load_and_search import LoadAndSearchToolSpec
         from llama_index.tools.google import GoogleSearchToolSpec
 
-        # google_spec = GoogleSearchToolSpec(
-        #     key=self.config.get("GOOGLE_API_KEY"), 
-        #     engine=self.config.get("GOOGLE_SEARCH_ENGINE_ID"),
-        #     )
+        google_spec = GoogleSearchToolSpec(
+            key=self.config.get("GOOGLE_API_KEY"), 
+            engine=self.config.get("GOOGLE_SEARCH_ENGINE_ID"),
+            )
 
-        # # Wrap the google search tool as it returns large payloads
-        # google_tools = LoadAndSearchToolSpec.from_defaults(
-        #     google_spec.to_tool_list()[0],
-        # ).to_tool_list()
+        # Wrap the google search tool as it returns large payloads
+        google_tools = LoadAndSearchToolSpec.from_defaults(
+            google_spec.to_tool_list()[0],
+        ).to_tool_list()
         
-        # tools.extend(google_tools)
+        tools.extend(google_tools)
         
         from llama_index.core.tools import QueryEngineTool, ToolMetadata
 
@@ -69,10 +69,6 @@ class AgenticRAG:
         
         query_tools = FunctionTool.from_defaults(
             fn=milvus_tools,
-            # metadata=ToolMetadata(
-            #     name="milvus_tools",
-            #     description="Searches the milvus database for the given input.",
-            # ),
         )
         
         tools.append(
@@ -80,18 +76,6 @@ class AgenticRAG:
         )
      
         memory = ChatMemoryBuffer.from_defaults(chat_history=[], llm=self.rag.llm)
-        
-        # agent = ReActAgent(
-        #     tools=tools,
-        #     memory=memory,
-        #     context="""
-        #     You are an AI assistant. You must always use the provided tools to answer any question or solve any task. 
-        #     Do not attempt to answer directly. If you cannot solve the task using the tools, respond with:
-        #     "I cannot complete this task without tools."
-        #     """,
-        #     llm=self.rag.llm,
-        #     verbose=True,
-        # )
         
         def add_2_numbers(a, b):
             return a + b

@@ -1,5 +1,9 @@
-from .rag import ContextualRAG
+from .agentic import (
+    ContextualRAG,
+    AgenticRAG,
+)
 
 __all__ = [
     "ContextualRAG",
+    "AgenticRAG",
 ]

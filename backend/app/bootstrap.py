@@ -1,6 +1,7 @@
 from services.cloud import CloudService
 from services.agent import AgentService
-from src.agentic.agent import AgenticRAG
+from src import AgenticRAG
+from repository.database import SQLiteDatabaseRepository
 from utils.logger import get_logger
 from utils.config import get_config
 
@@ -21,3 +22,5 @@ logger.info("Initialized agent service")
 AGENT_SEVICE=""
 
 AGENTIC_SERVICE = AgenticRAG(config=config)
+
+DATABASE = SQLiteDatabaseRepository(db_path=config.get("SQLITE_DB_PATH"))

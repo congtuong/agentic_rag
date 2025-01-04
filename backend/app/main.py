@@ -14,7 +14,6 @@ from utils.logger import get_logger
 from const import (
     ContextualRAGConfig,
 )
-from src.rag import ContextualRAG
 
 from routers.agents.controller import router as agents_router
 
