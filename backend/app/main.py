@@ -15,7 +15,6 @@ from const import (
     ContextualRAGConfig,
 )
 
-from routers.agents.controller import router as agents_router
 
 config = get_config()
 # print(config['logdir'])
@@ -107,7 +106,10 @@ async def healh_check():
         "status": "Running (Healthy)",
     }
 
+from routers.agents.controller import router as agents_router
+from routers.auth.controller import router as auth_router
 app.include_router(agents_router, prefix="/agents", tags=["agents"])
+app.include_router(auth_router, prefix="/auth", tags=["auth"])
 
 
 if __name__ == "__main__":

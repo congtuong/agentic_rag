@@ -26,6 +26,13 @@ CREATE TABLE "users" (
   "updated_at" timestamp NOT NULL DEFAULT (now())
 );
 
+CREATE TABLE "sessions" (
+  "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
+  "user_id" UUID NOT NULL,
+  "created_at" timestamp NOT NULL DEFAULT (now()),
+  "updated_at" timestamp NOT NULL DEFAULT (now())
+);
+
 CREATE TABLE "documents" (
   "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
   "user_id" UUID NOT NULL,
@@ -112,4 +119,13 @@ ALTER TABLE "chatbot_knowledges" ADD FOREIGN KEY ("chatbot_id") REFERENCES "chat
 
 ALTER TABLE "conversations" ADD FOREIGN KEY ("chatbot_id") REFERENCES "chatbots" ("id");
 
+ALTER TABLE "conversations" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id");
+
 ALTER TABLE "messages" ADD FOREIGN KEY ("conversation_id") REFERENCES "conversations" ("id");
+
+ALTER TABLE "sessions" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("id");
+
+insert into "users" ("username", "email", "password", "user_fullname", "user_role") values (
+  'admin', 'tuongbck@gmail.com', 
+  '$2a$10$VFKP3WQvhZRb7CGVag1li.6DjtTKqp3tIoTpDLGPIY4pGQvwC1QXm', 'Cong Tuong', 'admin'
+);

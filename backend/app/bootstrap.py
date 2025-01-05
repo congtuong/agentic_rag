@@ -1,5 +1,6 @@
 from services.cloud import CloudService
 from services.agent import AgentService
+from services.auth import AuthService
 from src import AgenticRAG
 from repository.database import SQLiteDatabaseRepository
 from utils.logger import get_logger
@@ -15,7 +16,7 @@ CLOUD_SERVICE = CloudService(
     access_key=config.get("AWS_ACCESS_KEY_ID"),
     secret_key=config.get("AWS_SECRET_ACCESS_KEY"),
     region_name=config.get("AWS_REGION_NAME"),
-    )
+)
 
 logger.info("Initialized agent service")
 # AGENT_SERVICE = AgentService()
@@ -23,4 +24,15 @@ AGENT_SEVICE=""
 
 AGENTIC_SERVICE = AgenticRAG(config=config)
 
-DATABASE = SQLiteDatabaseRepository(db_path=config.get("SQLITE_DB_PATH"))
+DATABASE = SQLiteDatabaseRepository(
+    db_path=config.get("SQLITE_DB_PATH"),
+    init_db_path=config.get("SQLITE_INIT_DB_PATH"),   
+    reinit_db=config.get("SQLITE_REINIT_DB"),
+)
+
+AUTH_SERVICE = AuthService(
+    database_instance=DATABASE,
+    secret_key=config.get("AUTH_SECRET_KEY"),
+    access_token_expires=int(config.get("ACCESS_TOKEN_EXPIRES")),
+    refresh_token_expires=int(config.get("REFRESH_TOKEN_EXPIRES")),
+)

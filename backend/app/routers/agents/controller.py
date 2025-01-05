@@ -23,8 +23,6 @@ from llama_index.core import Document
 from utils.logger import get_logger
 from utils.checker import check_upload_file
 
-from routers.schemas import *
-
 from bootstrap import (
     CLOUD_SERVICE,
     AGENTIC_SERVICE,

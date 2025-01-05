@@ -4,6 +4,8 @@ services:
   postgres-proj:
     container_name: postgres_proj
     image: postgres:lastest
+    volumes:
+      - ../postgres:/workspace/postgres
     ports:
       - "5432:5432"
     environment:

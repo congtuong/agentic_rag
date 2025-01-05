@@ -1,4 +1,5 @@
 import sqlite3
+import os
 from sqlite3 import Connection
 
 from .base import BaseDatabaseRepository
@@ -8,11 +9,20 @@ from utils.logger import get_logger
 logger = get_logger()
 
 class SQLiteDatabaseRepository(BaseDatabaseRepository):
-    def __init__(self, db_path):
+    def __init__(self, db_path: str, init_db_path: str, reinit_db: bool = False):
         """Initialize the SQLite database repository."""
         self.db_path = db_path
+        self.init_db_path = init_db_path
         logger.info(f"Database path: {self.db_path}")
         logger.info(f"Database health: {self.check_health()}")
+        if reinit_db:
+            logger.info(f"Initializing database with {init_db_path}")
+            if os.path.exists(db_path):
+                os.remove(db_path)
+            with self.get_client() as conn:
+                with open(init_db_path, 'r') as f:
+                    sql = f.read()
+                conn.executescript(sql)
 
     def _connect(self) -> Connection:
         """Connect to the SQLite database."""
@@ -37,13 +47,18 @@ class SQLiteDatabaseRepository(BaseDatabaseRepository):
             with self.get_client() as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
-                cursor.execute(query, params or ())
+                cursor.execute(query, params if params else ())
+                logger.info(f"Query executed: {query}")
+                logger.info(f"Params: {params}")
                 if fetch_one:
-                    return dict(cursor.fetchone()) if cursor.fetchone() else None
+                    row = cursor.fetchone()
+                    if row is None:
+                        return False
+                    return dict(row) if row else None
                 if fetch_all:
                     return [dict(row) for row in cursor.fetchall()]
                 conn.commit()
-                conn.close()
+                return True
         except Exception as e:
             logger.error(f"Error executing query: {e}")
             return None
@@ -64,10 +79,14 @@ class SQLiteDatabaseRepository(BaseDatabaseRepository):
         """Update a record in the specified table."""
         fields = ', '.join([f"{key} = ?" for key in kwargs.keys()])
         query = f"UPDATE {table} SET {fields}, updated_at = datetime('now') WHERE id = ?;"
-        self.execute_query(query, (*kwargs.values(), record_id))
+        return self.execute_query(query, (*kwargs.values(), record_id))
 
     def delete(self, table, record_id):
         """Delete a record from the specified table."""
         query = f"DELETE FROM {table} WHERE id = ?;"
-        self.execute_query(query, (record_id,))
+        return self.execute_query(query, (record_id,))
         
+    def read_by(self, table, column, value):
+        """Retrieve a record by a specified column value."""
+        query = f"SELECT * FROM {table} WHERE {column} = ?;"
+        return self.execute_query(query, (value,), fetch_one=True)
