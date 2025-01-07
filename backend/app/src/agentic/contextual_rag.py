@@ -432,23 +432,22 @@ class ContextualRAG:
         response = None
         retry = 0
         data = None
-        # while True:
-        #     if retry > 1:
-        #         break
-        logger.info(f"Starting chat with LLM")
-        response = self.llm.chat(messages=messages)
-        logger.info(f"LLM Response: {response}")
-        
-        data, ok = extract_json(response.message.content)
-        if ok:
-            response = data
-        #     break
-        try: 
-            data = json.loads(response.message.content)
-            response = data
-        except json.JSONDecodeError:
-            retry += 1
-            response = None
+        while True:
+            if retry > 3:
+                break
+            logger.info(f"Starting chat with LLM")
+            response = self.llm.chat(messages=messages)
+            logger.info(f"LLM Response: {response}")
+            
+            data, ok = extract_json(response.message.content)
+            if ok:
+                break
+            try: 
+                data = json.loads(response.message.content)
+                break
+            except json.JSONDecodeError:
+                retry += 1
+                continue
             
         logger.info(f"LLM final Response: {response}")
         
