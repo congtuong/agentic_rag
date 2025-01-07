@@ -39,15 +39,21 @@ class AuthService:
     def refresh(self, payload: dict):
         try:
             session = self.database_instance.read("sessions", payload["token_id"])
+            if not session:
+                return 410
+            logger.info(f"Session found: {session}")
             logger.info(f"Refreshing token for user: {payload}")
             if payload['exp'] < int(datetime.utcnow().timestamp()):
                 return 410
             if session:
                 user = self.database_instance.read("users", session["user_id"])
+                logger.info(f"User found: {user}")
                 if user:
                     access_token = self._generate_token(user["username"], self.access_token_expiration, str(uuid.uuid4()))
                     logger.info(f"Refreshed token success for user: {user['username']}")
                     return {"access_token": access_token}
+                else:
+                    logger.error(f"User not found: {session['user_id']}")
         except jwt.ExpiredSignatureError:
             logger.error(f"Token expired")
             return 410
@@ -64,7 +70,7 @@ class AuthService:
                 refresh_token_id = str(uuid.uuid4())
                 logger.info(f"Generating token for user: {self.access_token_expiration}, {refresh_token_id}")
                 refresh_token = self._generate_token(username, self.refresh_token_expiration, refresh_token_id)
-                access_token = self._generate_token(username, self.access_token_expiration, refresh_token_id)
+                access_token = self._generate_token(username, self.access_token_expiration, str(uuid.uuid4()))
                 
                 self.database_instance.create("sessions", id=refresh_token_id, user_id=user["id"])
                 logger.info(f"Login success for user: {username}")
@@ -99,4 +105,15 @@ class AuthService:
         except Exception as e:
             return None
     
+    def is_access_token(self, payload: dict):
+        try:
+            session = self.database_instance.read("sessions", payload["token_id"])
+            logger.info(f"Checking if token is refresh: {session}")
+            if session:
+                return False
+            return True
+        except Exception as e:
+            logger.error(f"Error checking token: {e}")
+            return False
+            
     

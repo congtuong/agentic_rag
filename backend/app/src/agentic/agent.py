@@ -56,14 +56,13 @@ class AgenticRAG:
             google_spec.to_tool_list()[0],
         ).to_tool_list()
         
-        tools.extend(google_tools)
         
         from llama_index.core.tools import QueryEngineTool, ToolMetadata
 
         def milvus_tools(input: str):
             response = self.rag.contextual_search(
                 query=input,
-                top_k=5,
+                top_k=1,
             )
             return response
         
@@ -74,6 +73,7 @@ class AgenticRAG:
         tools.append(
             query_tools
         )
+        # tools.extend(google_tools)
      
         memory = ChatMemoryBuffer.from_defaults(chat_history=[], llm=self.rag.llm)
         
@@ -104,6 +104,8 @@ class AgenticRAG:
             You are an AI assistant. You must always use the provided tools to answer any question or solve any task.
             Do not attempt to answer directly. If you cannot solve the task using the tools, respond with:
             "I cannot complete this task without tools."
+
+            NOTE: The vector search tool should be used every time.
             """,
             verbose=True,
         )

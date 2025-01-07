@@ -21,8 +21,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
         self.protected_prefix = protected_prefix
         
     async def dispatch(self, request: Request, call_next):
+        logger.info(f"{self.protected_prefix}")
         for prefix in self.protected_prefix:
-            if request.url.path.startswith(prefix):
+            if request.url.path.startswith(prefix) or request.url.path == prefix:
                 logger.info(f"Protected route: {request.url.path}")
                 bearer_token = request.headers.get("Authorization")
                 if not bearer_token:
@@ -35,7 +36,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 
                 try:
                     payload = jwt.decode(token, self.secret, algorithms=["HS256"])
-                    # request.state.user = payload
+                    request.state.user = payload
                 except jwt.ExpiredSignatureError:
                     return JSONResponse(
                         status_code=401,
@@ -45,6 +46,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 response = await call_next(request)
                 return response
 
+        logger.info(f"Unprotected route: {request.url.path}")
         return await call_next(request)
         
         

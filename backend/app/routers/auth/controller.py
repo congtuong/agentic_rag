@@ -6,11 +6,14 @@ from bootstrap import AUTH_SERVICE
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import JSONResponse
 from fastapi import Request, Depends
+from fastapi.security import HTTPBearer
 
 router = APIRouter()
 
 logger = get_logger()
 config = get_config()
+
+security = HTTPBearer()
 
 @router.post("/login")
 async def login(
@@ -101,17 +104,16 @@ async def register(
         content=ResponseModel(status=500, message="Internal server error", data={})
     )
     
-@router.post("/refresh")
+@router.post("/refresh", dependencies=[Depends(security)])
 async def refresh(
-    refresh_token_request: RefreshTokenRequest,
-    request: Request
+    request: Request,
 ):
     """
     Refresh token
     """
-    
+        
     payload = request.state.user
-    
+        
     logger.info(f"Refresh token request incoming")
     # res = AUTH_SERVICE.refresh(**refresh_token_request.dict())
     res = AUTH_SERVICE.refresh(payload)

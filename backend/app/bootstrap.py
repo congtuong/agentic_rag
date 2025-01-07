@@ -22,12 +22,16 @@ logger.info("Initialized agent service")
 # AGENT_SERVICE = AgentService()
 AGENT_SEVICE=""
 
-AGENTIC_SERVICE = AgenticRAG(config=config)
-
 DATABASE = SQLiteDatabaseRepository(
     db_path=config.get("SQLITE_DB_PATH"),
     init_db_path=config.get("SQLITE_INIT_DB_PATH"),   
-    reinit_db=config.get("SQLITE_REINIT_DB"),
+    reinit_db=True if 
+    config.get("SQLITE_REINIT_DB") == "true" else False,
+)
+
+AGENTIC_SERVICE = AgentService(
+    config=config,
+    database_instance=DATABASE,
 )
 
 AUTH_SERVICE = AuthService(

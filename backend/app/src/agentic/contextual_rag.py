@@ -28,6 +28,7 @@ from llama_index.core import (
     Document,
     Settings,
 )
+from elasticsearch import Elasticsearch
 from const import (
     LLMService,
     EmbedderService,
@@ -48,6 +49,16 @@ logger = get_logger()
 class ContextualRAG:
     def __init__(self, config: ContextualRAGConfig = ContextualRAGConfig()):
         self.config = config
+        
+        # ATTENTION TO THIS, IT IS THE MAIN DIFFERENCE
+        # ADD ELASTICSEARCH TO ADDRESS THE MAXIMUM CHARACTER WHEN INDEX DATA TO MILVUS
+        logger.info("Connecting to Elasticsearch")
+        self.es = Elasticsearch(f"http://{self.config.es_host}:{self.config.es_port}")
+        self.es_chunk_index = self.config.es_chunk_index
+        logger.info("Connected to Elasticsearch!")
+        logger.info(f"ES info: {self.es.info()}")
+        # END
+        
         logger.info("Loading LLM")
         self.llm = self._load_llm(config.llm_service, config.llm_model) 
         Settings.llm = self.llm
@@ -57,6 +68,28 @@ class ContextualRAG:
         self.embedder = self._load_embedder(config.embedder_service, config.embedder_model)
         Settings.embed_model = self.embedder
         logger.info("Loaded Embedder!")
+        
+        if not self.es.indices.exists(index=self.es_chunk_index):
+            logger.info("Creating Elasticsearch index")
+            self.es.indices.create(
+                index = self.es_chunk_index,
+                mappings={
+                    "properties": {
+                        "embedding": {
+                            "type": "dense_vector",
+                            "dims": len(self.embedder.get_text_embedding("test")),
+                            "index": True,
+                            "similarity": "cosine"
+                        },
+                        "doc_id": {
+                            "type": "text",
+                        },
+                        "text": {
+                            "type": "text",
+                        }
+                    }
+                },
+            )
 
         logger.info("Loading VectorDB")
         self.vectordb = self._load_vectordb(config.vectordb_service)
@@ -107,8 +140,10 @@ class ContextualRAG:
         return Embedder object
         """
         if embedder_service == EmbedderService.OPENAI:
+            logger.info(f"Loading OpenAI Embedder with model: {embedder_model}")
             return OpenAIEmbedding(embedder_model)
         elif embedder_service == EmbedderService.HUGGINGFACE:
+            logger.info(f"Loading HuggingFace Embedder with model: {embedder_model}")
             return HuggingFaceEmbedding(embedder_model)
         else:
             raise ValueError(f"Invalid Embedder service: {embedder_service}")
@@ -139,8 +174,7 @@ class ContextualRAG:
                 logger.info(f"Shape check: {len(shape_check)}")            
                 schema.add_field(field_name="embedding", datatype=DataType.FLOAT_VECTOR, dim=len(shape_check))
                 schema.add_field(field_name="doc_id", datatype=DataType.VARCHAR, max_length=36)
-                schema.add_field(field_name="id", datatype=DataType.INT64, auto_id=True, is_primary=True)
-                schema.add_field(field_name="text", datatype=DataType.VARCHAR, max_length=4096)
+                schema.add_field(field_name="id", datatype=DataType.VARCHAR, is_primary=True, max_length=36)
                 
                 client.create_collection(collection_name="collection", schema=schema)
                 
@@ -282,25 +316,33 @@ class ContextualRAG:
         
         for contextual_chunk in contextual_chunks:
             embeddings = self.embedder.get_text_embedding(contextual_chunk.text)
+            # logger.info(f"Inserted: {contextual_chunk.}")
             res = self.vectordb.insert(
                 collection_name="collection",
                 data = [
                     {
+                        "id": contextual_chunk.doc_id,
                         "doc_id": doc_id,
                         "embedding": embeddings,
-                        "text": contextual_chunk.text,
                     }
                 ]
             )
             
             total_inserted += res["insert_count"]
+            res = self.es.index(
+                index=self.es_chunk_index,
+                id=contextual_chunk.doc_id,
+                document={
+                    "doc_id": doc_id,
+                    "embedding": embeddings,
+                    "text": contextual_chunk.text,
+                },  
+            )
         
         logger.info(f"Collection updated with document: {doc_id}")
         logger.info(f"Total inserted: {total_inserted}")
         
-        return True
-        
-
+        return contextual_chunks
 
     def sematic_search(
         self,
@@ -321,7 +363,7 @@ class ContextualRAG:
             collection_name="collection",
             data=[embeddings],
             limit=top_k,
-            output_fields=["doc_id", "text"],
+            output_fields=["doc_id"],
         )
         
         # logger.info(f"Search results: {res}")
@@ -339,33 +381,39 @@ class ContextualRAG:
     def contextual_search(
         self,
         query: str,
-        top_k: int = 5,
+        top_k: int = 1,
     ):
         """
         return list of top_k documents
         """
             
-        semantic_results = self.sematic_search(query, top_k)
-        combined_nodes = [
-            NodeWithScore(
-                node=TextNode(
-                    text=hit["entity"]["text"],
-                    metadata={
-                        "doc_id": hit["entity"]["doc_id"],
-                    },
-                ),
-                # score is L2 distance so we need to invert it
-                score=1 / (1e-6 + hit["distance"]),
-            ) for hit in semantic_results
-        ]
-            
-        # logger.info(f"Combined nodes: {combined_nodes}")
+        semantic_results = tqdm(self.sematic_search(query, top_k), desc="Getting contextual results")
+        combined_nodes = []
+        for hit in semantic_results:
+            doc = self.es.get(
+                index=self.es_chunk_index, id=hit['id'],
+            )["_source"]
+            # logger.info(f"Doc: {doc}")
+            combined_nodes.append(
+                NodeWithScore(
+                    node=TextNode(
+                        text=doc["text"],
+                        metadata={
+                            "doc_id": doc["doc_id"],
+                            "node_id": hit["id"],
+                        },
+                    ),
+                    # score is L2 distance so we need to invert it
+                    score=1 / (1e-6 + hit["distance"]),
+                )
+            )
+        logger.info(f"Combined nodes: {combined_nodes}")
         
         reranked_nodes = self.reranker.postprocess_nodes(
             nodes=combined_nodes, query_bundle=QueryBundle(query_str=query)
         )
         
-        # logger.info(f"Reranked nodes: {reranked_nodes}")
+        logger.info(f"Reranked nodes: {reranked_nodes}")
         
         context = "\n\n".join([
             node.get_text() for node in reranked_nodes
@@ -384,22 +432,23 @@ class ContextualRAG:
         response = None
         retry = 0
         data = None
-        while True:
-            if retry > 3:
-                break
-            logger.info(f"Starting chat with LLM")
-            response = self.llm.chat(messages=messages)
-            logger.info(f"LLM Response: {response}")
-            
-            data, ok = extract_json(response.message.content)
-            if ok:
-                break
-            try: 
-                data = json.loads(response.message.content)
-                break
-            except json.JSONDecodeError:
-                retry += 1
-                continue
+        # while True:
+        #     if retry > 1:
+        #         break
+        logger.info(f"Starting chat with LLM")
+        response = self.llm.chat(messages=messages)
+        logger.info(f"LLM Response: {response}")
+        
+        data, ok = extract_json(response.message.content)
+        if ok:
+            response = data
+        #     break
+        try: 
+            data = json.loads(response.message.content)
+            response = data
+        except json.JSONDecodeError:
+            retry += 1
+            response = None
             
         logger.info(f"LLM final Response: {response}")
         

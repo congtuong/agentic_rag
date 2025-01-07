@@ -108,15 +108,17 @@ async def healh_check():
 
 from routers.agents.controller import router as agents_router
 from routers.auth.controller import router as auth_router
+from routers.documents.controller import router as documents_router
 app.include_router(agents_router, prefix="/agents", tags=["agents"])
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
+app.include_router(documents_router, prefix="/documents", tags=["documents"])
 
 from middleware.authentication import AuthMiddleware
 
 app.add_middleware(
     AuthMiddleware,
     auth_secret_key=config["AUTH_SECRET_KEY"],
-    protected_prefix=["/agents"],
+    protected_prefix=["/agents", "/auth/refresh", "/documents"],
 )
 
 

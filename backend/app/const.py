@@ -109,4 +109,7 @@ class ContextualRAGConfig:
         self.reranker_model = "BAAI/bge-reranker-large"
         self.reranker_top_n = 5
         self.llm_model = "gpt-4o-mini"
+        self.es_host = config.get("ELASTICSEARCH_HOST")
+        self.es_port = config.get("ELASTICSEARCH_PORT")
+        self.es_chunk_index = config.get("ELASTICSEARCH_CHUNK_INDEX")
         
