@@ -36,9 +36,8 @@ class AuthService:
     def _is_exists(self, table: str, column: str, value: str):
         return self.database_instance.read_by(table, column, value)
     
-    def refresh(self, refresh_token: str):
+    def refresh(self, payload: dict):
         try:
-            payload = jwt.decode(refresh_token, self.secret, algorithms=["HS256"])
             session = self.database_instance.read("sessions", payload["token_id"])
             logger.info(f"Refreshing token for user: {payload}")
             if payload['exp'] < int(datetime.utcnow().timestamp()):

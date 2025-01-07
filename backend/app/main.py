@@ -111,6 +111,14 @@ from routers.auth.controller import router as auth_router
 app.include_router(agents_router, prefix="/agents", tags=["agents"])
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 
+from middleware.authentication import AuthMiddleware
+
+app.add_middleware(
+    AuthMiddleware,
+    auth_secret_key=config["AUTH_SECRET_KEY"],
+    protected_prefix=["/agents"],
+)
+
 
 if __name__ == "__main__":
     import uvicorn
