@@ -1,4 +1,6 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
+
+from typing import List
 
 def ResponseModel(data, message, status):
     return {
@@ -28,3 +30,19 @@ class RegisterResponse(BaseModel):
     username: str
     email: str
     user_fullname: str
+
+class CreateKnowledgeRequest(BaseModel):
+    name: str
+    documents: List[str] = Field(..., min_items=1)
+    
+class CreateKnowledgeResponse(BaseModel):
+    name: str
+    knowledge_id: str
+    
+class CreateChatBotRequest(BaseModel):
+    name: str
+    knowledges: List[str] = Field(..., min_items=1)
+    
+class CreateChatBotResponse(BaseModel):
+    name: str
+    chatbot_id: str

@@ -165,9 +165,9 @@ class ContextualRAG:
             
             # for dev purposes
             # drop if collection exists
-            # if client.has_collection(collection_name="collection"):
-            #     logger.info("Dropping collection")
-            #     client.drop_collection(collection_name="collection")
+            if client.has_collection(collection_name="collection") and self.config.vectordb_reinit:
+                logger.info("Dropping collection")
+                client.drop_collection(collection_name="collection")
 
             if not client.has_collection(collection_name="collection"):                
                 shape_check = self.embedder.get_text_embedding("test")

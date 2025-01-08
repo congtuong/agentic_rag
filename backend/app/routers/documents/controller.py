@@ -23,6 +23,7 @@ from bootstrap import (
     CLOUD_SERVICE,
     AGENTIC_SERVICE,
     AUTH_SERVICE,
+    KNOWLEDGE_SERVICE,
 )
 
 router = APIRouter()
@@ -83,6 +84,10 @@ async def upload_documents(
             )
         else:
             logger.error(f"Document processing failed: {document.filename}")
+            CLOUD_SERVICE.cloud_repository.delete(
+                object_name=f"documents/{doc_id}.{document.filename.split('.')[-1]}",
+                bucket_name=CLOUD_SERVICE.bucket_name
+            )
             return JSONResponse(
                 status_code=500,
                 content=ResponseModel(status=500, message="Processing failed", data={})
@@ -97,4 +102,33 @@ async def upload_documents(
     return JSONResponse(
         status_code=500,
         content={"message": "Upload failed"},
+    )
+
+@router.get("/list", dependencies=[Depends(security)])
+async def list_documents(
+    request: Request,
+):
+    """
+    List documents
+    """
+    logger.info(f"List documents request incoming")
+    
+    if not AUTH_SERVICE.is_access_token(request.state.user):
+        return JSONResponse(
+            status_code=401,
+            content=ResponseModel(status=401, message="Unauthorized", data={})
+        )
+    
+    documents = KNOWLEDGE_SERVICE.list_documents(
+        username=request.state.user["username"]
+    )
+    if not documents:
+        return JSONResponse(
+            status_code=404,
+            content=ResponseModel(status=404, message="No documents found", data={})
+        )
+    
+    return JSONResponse(
+        status_code=200,
+        content=ResponseModel(status=200, message="Documents found", data=documents)
     )

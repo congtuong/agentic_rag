@@ -98,17 +98,20 @@ class ContextualRAGConfig:
     
     def __init__(self):
         self.llm_service = LLMService.OPENAI
-        self.key = config.get("OPEN_AI_API_KEY")
         self.embedder_service = EmbedderService.HUGGINGFACE
         self.vectordb_service = VectorDBService.MILVUS
         self.reranker_service = RerankerService.FLAGEMBEDDING
-        self.vectordb_uri = "http://milvus-standalone-proj:19530"
         self.buffer_size = 1
         self.breakpoint_percentile_threshold = 90
         self.embedder_model = "BAAI/bge-small-en-v1.5"
         self.reranker_model = "BAAI/bge-reranker-large"
         self.reranker_top_n = 5
         self.llm_model = "gpt-4o-mini"
+        
+        self.key = config.get("OPEN_AI_API_KEY")
+        self.vectordb_uri = config.get("MILVUS_URI")
+        self.vectordb_collection = config.get("MILVUS_COLLECTION")
+        self.vectordb_reinit = True if config.get("MILVUS_REINIT_COLLECTION") == "true" else False
         self.es_host = config.get("ELASTICSEARCH_HOST")
         self.es_port = config.get("ELASTICSEARCH_PORT")
         self.es_chunk_index = config.get("ELASTICSEARCH_CHUNK_INDEX")

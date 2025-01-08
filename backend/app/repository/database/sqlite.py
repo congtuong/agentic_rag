@@ -70,10 +70,10 @@ class SQLiteDatabaseRepository(BaseDatabaseRepository):
         query = f"INSERT INTO {table} ({columns}, created_at, updated_at) VALUES ({placeholders}, datetime('now'), datetime('now'));"
         return self.execute_query(query, tuple(kwargs.values()))
 
-    def read(self, table, record_id):
+    def read(self, table, record_id, fetch_one=True, fetch_all=False):
         """Retrieve a record by ID from the specified table."""
         query = f"SELECT * FROM {table} WHERE id = ?;"
-        return self.execute_query(query, (record_id,), fetch_one=True)
+        return self.execute_query(query, (record_id,), fetch_one=fetch_one, fetch_all=fetch_all)
 
     def update(self, table, record_id, **kwargs):
         """Update a record in the specified table."""
@@ -85,8 +85,13 @@ class SQLiteDatabaseRepository(BaseDatabaseRepository):
         """Delete a record from the specified table."""
         query = f"DELETE FROM {table} WHERE id = ?;"
         return self.execute_query(query, (record_id,))
+    
+    def delete_by(self, table, column, value):
+        """Delete a record by a specified column value."""
+        query = f"DELETE FROM {table} WHERE {column} = ?;"
+        return self.execute_query(query, (value,))
         
-    def read_by(self, table, column, value):
+    def read_by(self, table, column, value, fetch_one=True, fetch_all=False):
         """Retrieve a record by a specified column value."""
         query = f"SELECT * FROM {table} WHERE {column} = ?;"
-        return self.execute_query(query, (value,), fetch_one=True)
+        return self.execute_query(query, (value,), fetch_one=fetch_one, fetch_all=fetch_all)

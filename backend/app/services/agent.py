@@ -66,7 +66,7 @@ class AgentService:
                         "file_name": file_name,
                         "file_type": file_type,
                         "file_size": file_size,
-                    }
+                    },
                 )
 
                 if not res:
@@ -90,9 +90,30 @@ class AgentService:
                 return True
             else:
                 logger.error(f"Document processing failed: {doc_id}")
+                res = delete_document(doc_id)
                 return False
         except Exception as e:
             logger.error(f"Error processing document: {e}")
+            res = delete_document(doc_id)
             return False
         finally:
             os.remove(file_path)
+
+    def delete_document(self, doc_id: str):
+        res = self.database_instance.delete_by(
+            "documents",
+            "id",
+            doc_id
+        )
+        if not res:
+            logger.error(f"Failed to delete document {doc_id}")
+            return False
+        res = self.database_instance.delete_by(
+            "chunks",
+            "document_id",
+            doc_id
+        )
+        if not res:
+            logger.error(f"Failed to delete chunks for document {doc_id}")
+            return False
+        return True

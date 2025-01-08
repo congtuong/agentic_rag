@@ -88,10 +88,11 @@ class AuthService:
         try:
             if self._is_exists("users", "username", username) or self._is_exists("users", "email", email):
                 return 409
-            
+
             hashed_password = hash_password(password)
             user = self.database_instance.create(
                 "users",
+                id=str(uuid.uuid4()),
                 username=username,
                 email=email,
                 password=hashed_password,

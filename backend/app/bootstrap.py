@@ -1,6 +1,7 @@
 from services.cloud import CloudService
 from services.agent import AgentService
 from services.auth import AuthService
+from services.knowledge import KnowledgeService
 from src import AgenticRAG
 from repository.database import SQLiteDatabaseRepository
 from utils.logger import get_logger
@@ -39,4 +40,8 @@ AUTH_SERVICE = AuthService(
     secret_key=config.get("AUTH_SECRET_KEY"),
     access_token_expires=int(config.get("ACCESS_TOKEN_EXPIRES")),
     refresh_token_expires=int(config.get("REFRESH_TOKEN_EXPIRES")),
+)
+
+KNOWLEDGE_SERVICE = KnowledgeService(
+    database_instance=DATABASE,
 )

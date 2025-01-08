@@ -56,6 +56,7 @@ CREATE TABLE "chunks" (
 CREATE TABLE "knowledges" (
   "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
   "user_id" UUID NOT NULL,
+  "name" TEXT NOT NULL,
   "created_at" timestamp NOT NULL DEFAULT (now()),
   "updated_at" timestamp NOT NULL DEFAULT (now())
 );
