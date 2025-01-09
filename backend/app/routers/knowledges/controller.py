@@ -105,10 +105,10 @@ async def create_chatbot(
         
     return JSONResponse(
         content=ResponseModel(
-            data=CrateChatBotResponse(
+            data=CreateChatBotResponse(
                 name=chatbot.name,
                 chatbot_id=chatbot_id,
-            ),
+            ).dict(),
             message="Chatbot created",
             status=200,
         ),

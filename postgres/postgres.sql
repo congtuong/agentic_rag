@@ -98,6 +98,7 @@ CREATE TABLE "conversations" (
 CREATE TABLE "messages" (
   "id" UUID PRIMARY KEY DEFAULT (uuid_generate_v4()),
   "conversation_id" UUID NOT NULL,
+  "index" int NOT NULL,
   "content" text NOT NULL,
   "type" sender_type NOT NULL,
   "created_at" timestamp NOT NULL DEFAULT (now()),

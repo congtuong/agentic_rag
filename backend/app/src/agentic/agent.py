@@ -1,5 +1,6 @@
-from typing import Dict, Any, List, Tuple, Union
+import time
 
+from typing import Dict, Any, List, Tuple, Union
 from llama_index.vector_stores.milvus.utils import (
     ScalarMetadataFilters,
     ScalarMetadataFilter,
@@ -38,87 +39,116 @@ class AgenticRAG:
         self.rag = ContextualRAG()
         Settings.llm = self.rag.llm
         Settings.embed_model = self.rag.embedder
+        self.agents = {}
+        self.agent_live_time = 60 * 60 * 24  # 1 day
         self._load_tools()
         
-    def _load_tools(self):
-        tools = []
-        
-        from llama_index.core.tools.tool_spec.load_and_search import LoadAndSearchToolSpec
-        from llama_index.tools.google import GoogleSearchToolSpec
+    def _load_tools(
+        self,
+        conversation_id: str = "default",  
+        document_ids: List[str] = None,
+        history: List[dict] = None,
+    ):
+        try:
+            tools = []
+            
+            # from llama_index.core.tools.tool_spec.load_and_search import LoadAndSearchToolSpec
+            # from llama_index.tools.google import GoogleSearchToolSpec
 
-        google_spec = GoogleSearchToolSpec(
-            key=self.config.get("GOOGLE_API_KEY"), 
-            engine=self.config.get("GOOGLE_SEARCH_ENGINE_ID"),
+            # google_spec = GoogleSearchToolSpec(
+            #     key=self.config.get("GOOGLE_API_KEY"), 
+            #     engine=self.config.get("GOOGLE_SEARCH_ENGINE_ID"),
+            #     )
+
+            # # Wrap the google search tool as it returns large payloads
+            # google_tools = LoadAndSearchToolSpec.from_defaults(
+            #     google_spec.to_tool_list()[0],
+            # ).to_tool_list()
+            
+            
+            # from llama_index.core.tools import QueryEngineTool, ToolMetadata
+
+            def milvus_tools(input: str):
+                response = self.rag.contextual_search(
+                    query=input,
+                    top_k=1,
+                    document_ids=document_ids,
+                )
+                return response
+            
+            query_tools = FunctionTool.from_defaults(
+                fn=milvus_tools,
             )
-
-        # Wrap the google search tool as it returns large payloads
-        google_tools = LoadAndSearchToolSpec.from_defaults(
-            google_spec.to_tool_list()[0],
-        ).to_tool_list()
-        
-        
-        from llama_index.core.tools import QueryEngineTool, ToolMetadata
-
-        def milvus_tools(input: str):
-            response = self.rag.contextual_search(
-                query=input,
-                top_k=1,
+            
+            tools.append(
+                query_tools
             )
-            return response
+            # tools.extend(google_tools)
         
-        query_tools = FunctionTool.from_defaults(
-            fn=milvus_tools,
-        )
-        
-        tools.append(
-            query_tools
-        )
-        # tools.extend(google_tools)
-     
-        memory = ChatMemoryBuffer.from_defaults(chat_history=[], llm=self.rag.llm)
-        
-        def add_2_numbers(a, b):
-            return a + b
-        
-        def multiply(a: int, b: int) -> int:
-            """Multiply two integers and returns the result integer"""
-            return a * b
+            memory = ChatMemoryBuffer.from_defaults(
+                chat_history=[],
+                llm=self.rag.llm,
+                )
+            
+            def add_2_numbers(a, b):
+                return a + b
+            
+            def multiply(a: int, b: int) -> int:
+                """Multiply two integers and returns the result integer"""
+                return a * b
 
-        
-        tools.extend([
-            FunctionTool.from_defaults(
-                fn=add_2_numbers,
-            ),
-            FunctionTool.from_defaults(
-                fn=multiply,
-            ),
-        ])
-        
-        logger.info(f"Agent tools: {tools}")
-        
-        agent = ReActAgent.from_tools(
-            tools=tools,
-            memory=memory,
-            llm=self.rag.llm,
-            context="""
-            You are an AI assistant. You must always use the provided tools to answer any question or solve any task.
-            Do not attempt to answer directly. If you cannot solve the task using the tools, respond with:
-            "I cannot complete this task without tools."
+            
+            # tools.extend([
+            #     FunctionTool.from_defaults(
+            #         fn=add_2_numbers,
+            #     ),
+            #     FunctionTool.from_defaults(
+            #         fn=multiply,
+            #     ),
+            # ])
+            
+            logger.info(f"Agent tools: {tools}")
+            
+            agent = ReActAgent.from_tools(
+                tools=tools,
+                memory=memory,
+                llm=self.rag.llm,
+                context="""
+                You are an AI assistant. You must always use the provided tools to answer any question or solve any task.
+                Do not attempt to answer directly. If you cannot solve the task using the tools, respond with:
+                "I cannot complete this task without tools."
 
-            NOTE: The vector search tool should be used every time.
-            """,
-            verbose=True,
-        )
+                NOTE: The vector search tool should be used every time.
+                """,
+                verbose=True,
+            )
+            
+            # agent = milvus_index.as_chat_engine(
+            #     llm=self.rag.llm,
+            #     memory=memory,
+            #     verbose=True,
+            #     chat_mode="react",
+            # )
+            
+            self.agents[conversation_id] = {
+                "agent": agent,
+                "updated_at": time.time(),
+            }
+            return True
         
-        # agent = milvus_index.as_chat_engine(
-        #     llm=self.rag.llm,
-        #     memory=memory,
-        #     verbose=True,
-        #     chat_mode="react",
-        # )
+        except Exception as e:
+            logger.error(f"Error loading tools: {e}")
+            return False
         
-        self.agent = agent
+    def chat(
+        self, 
+        query: str, 
+        conversation_id: str = "default",
+        ):
         
-    def chat(self, query: str):
-        return self.agent.chat(query)
+        response = self.agents[conversation_id]["agent"].chat(query)
+        logger.info(f"Agent history: {self.agents[conversation_id]['agent'].memory.to_dict()}")
+        
+        return response
+
         

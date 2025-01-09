@@ -348,6 +348,7 @@ class ContextualRAG:
         self,
         query: str,
         top_k: int = 5,
+        document_ids: List[str] = None,
         context: Dict[str, Any] = None,
         system_prompt: str = ASSISTANT_SYSTEM_PROMPT,
     ):
@@ -363,6 +364,8 @@ class ContextualRAG:
             collection_name="collection",
             data=[embeddings],
             limit=top_k,
+            filter="doc_id in {ids}" if document_ids else "",
+            filter_params={"ids": document_ids} if document_ids else None,
             output_fields=["doc_id"],
         )
         
@@ -382,12 +385,15 @@ class ContextualRAG:
         self,
         query: str,
         top_k: int = 1,
+        document_ids: List[str] = None,
     ):
         """
         return list of top_k documents
         """
             
-        semantic_results = tqdm(self.sematic_search(query, top_k), desc="Getting contextual results")
+        semantic_results = tqdm(self.sematic_search(
+            query=query, top_k=top_k, document_ids=document_ids,
+            ), desc="Getting contextual results")
         combined_nodes = []
         for hit in semantic_results:
             doc = self.es.get(

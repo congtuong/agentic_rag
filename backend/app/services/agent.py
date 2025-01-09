@@ -1,5 +1,6 @@
 import textract
 import os
+import threading
 
 from src import AgenticRAG
 from const import ContextualRAGConfig
@@ -17,12 +18,6 @@ class AgentService:
     ):
         self.agentic = AgenticRAG(config)
         self.database_instance = database_instance    
-        
-    def get_agent(self, agent_id):
-        return self.agentic.get_agent(agent_id)
-    
-    def chat(self, query: str):
-        return self.agentic.chat(query)
 
     def add_document(
         self, 
@@ -90,11 +85,11 @@ class AgentService:
                 return True
             else:
                 logger.error(f"Document processing failed: {doc_id}")
-                res = delete_document(doc_id)
+                res = self.delete_document(doc_id)
                 return False
         except Exception as e:
             logger.error(f"Error processing document: {e}")
-            res = delete_document(doc_id)
+            res = self.delete_document(doc_id)
             return False
         finally:
             os.remove(file_path)
@@ -117,3 +112,86 @@ class AgentService:
             logger.error(f"Failed to delete chunks for document {doc_id}")
             return False
         return True
+    
+    def create_conversation(self, chatbot_id: str, conversation_id: str, username: str):
+        user = self.database_instance.read_by(
+            table="users",
+            column="username",
+            value=username
+        )
+        if not user:
+            logger.error(f"User not found: {username}")
+            return False
+    
+        sql_query = """
+            select documents.id from chatbot_knowledges join knowledges 
+            on chatbot_knowledges.knowledge_id = knowledges.id join documents
+            join knowledge_documents on documents.id = knowledge_documents.document_id
+            where chatbot_knowledges.chatbot_id = ?;
+        """
+        documents = self.database_instance.execute_query(
+            sql_query,
+            (chatbot_id,),
+            fetch_all=True,
+            fetch_one=False
+        )
+        if not documents:
+            logger.error("Failed to get documents in chatbot")
+            return None
+        
+        doc_ids = [doc["id"] for doc in documents] if len(documents) > 0 else None
+        
+        if not self.agentic._load_tools(
+            conversation_id=conversation_id,
+            document_ids=doc_ids
+        ): 
+            logger.error(f"Failed to load tools for bot {chatbot_id}")
+            return False
+        
+        conversation = self.database_instance.create(
+            "conversations",
+            **{
+                "id": conversation_id,
+                "chatbot_id": chatbot_id,
+                "user_id": user["id"],
+            }
+        )
+        
+        if not conversation:
+            logger.error(f"Failed to create conversation {conversation_id}")
+            return False
+        
+        return True
+    
+    def get_conversation(self, conversation_id: str):
+        sql_query = """
+            select messages.* from conversations join messages on
+            conversations.id = messages.conversation_id where conversations.id = ?;
+        """
+        
+        messages = self.database_instance.execute_query(
+            sql_query,
+            (conversation_id,),
+            fetch_all=True,
+            fetch_one=False
+        )
+        
+        if not messages:
+            logger.error(f"Failed to get messages for conversation {conversation_id}")
+            return None
+        
+        logger.info(f"Get conversation {conversation_id} messages successfully")
+        
+        return messages
+    
+    
+    def chat(self, query: str, conversation_id:str):
+
+        response = self.agentic.chat(
+            query=query,
+            conversation_id=conversation_id
+        )
+
+        return response
+    
+    

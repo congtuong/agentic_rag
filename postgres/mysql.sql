@@ -105,6 +105,7 @@ CREATE TABLE "messages" (
   "id" TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
   "conversation_id" TEXT NOT NULL,
   "content" TEXT NOT NULL,
+  "index" INTEGER NOT NULL,
   "type" TEXT NOT NULL CHECK ("type" IN ('assistant', 'user')),
   "created_at" TEXT NOT NULL DEFAULT (datetime('now')),
   "updated_at" TEXT NOT NULL DEFAULT (datetime('now')),

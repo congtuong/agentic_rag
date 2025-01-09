@@ -121,14 +121,14 @@ class KnowledgeService:
             **{
                 "id": chatbot_id,
                 "name": name,
-                "user_id": user_id,
-                "config": {},
+                "user_id": user['id'],
+                "config": "{}",
                 "status": "private",
             }
         )
         
         if not res:
-            logger.error(f"Failed to create chatbot: {chatbot}")
+            logger.error(f"Failed to create chatbot: {res}")
             return False
         
         for kl_id in knowledges:
@@ -161,8 +161,7 @@ class KnowledgeService:
                 res = self.delete_chatbot(chatbot_id)
                 if not res:
                     logger.error(f"Failed to delete chatbot")
-            
-            return False
+                    return False
                 
         return True
     
@@ -284,7 +283,7 @@ class KnowledgeService:
         self,
         knowledge_id: str,
     ):
-        sql_query = f"""
+        sql_query = """
             SELECT documents.* FROM knowledge_documents join documents on 
             knowledge_documents.document_id = documents.id WHERE 
             knowledge_documents.knowledge_id = ?;
@@ -301,3 +300,55 @@ class KnowledgeService:
             return None
         
         return documents
+        
+
+    def list_chatbot(
+        self,
+        username: str,
+    ):
+        user = self.database_instance.read_by(
+            "users",
+            "username",
+            username
+        )
+        
+        if not user:
+            logger.error(f"User not found: {username}")
+            return None
+        
+        chatbots = self.database_instance.read_by(
+            "chatbots",
+            "user_id",
+            user["id"],
+            fetch_one=False,
+            fetch_all=True
+        )
+        
+        if not chatbots:
+            logger.error(f"Chatbots not found: {username}")
+            return None
+        
+        return chatbots
+
+
+    def list_knowledges_in_chatbot(
+        self,
+        chatbot_id: str,
+    ):
+        sql_query = """
+            SELECT knowledges.* FROM chatbot_knowledges join knowledges on 
+            chatbot_knowledges.knowledge_id = knowledges.id WHERE 
+            chatbot_knowledges.chatbot_id = ?;
+        """
+        
+        knowledges = self.database_instance.execute_query(
+            sql_query,
+            (chatbot_id,),
+            fetch_all=True,
+            fetch_one=False
+        )
+        if not knowledges:
+            logger.error("Failed to get knowledges in chatbot")
+            return None
+        
+        return knowledges
