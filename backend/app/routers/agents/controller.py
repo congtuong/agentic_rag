@@ -164,3 +164,39 @@ async def create_conversation(
             "data": {"conversation_id": conversaton_id},
         },
     )
+
+@router.get("/{chatbot_id}/conversations/list", dependencies=[Depends(security)])
+async def list_conversations(
+    chatbot_id: str,
+    request: Request,
+):
+    """
+    Get conversations
+    """
+    logger.info(f"Get conversations request incoming")
+    if not AUTH_SERVICE.is_access_token(request.state.user):
+        return JSONResponse(
+            status_code=401,
+            content=ResponseModel(status=401, message="Unauthorized", data={}).dict(),
+        )
+    
+    data = AGENTIC_SERVICE.list_conversations(chatbot_id)
+    
+    if not data:
+        return JSONResponse(
+            status_code=404,
+            content={
+                "status": 404,
+                "message": "Conversations not found",
+                "data": {},
+            },
+        )
+        
+    return JSONResponse(
+        status_code=200,
+        content={
+            "status": 200,
+            "message": "Get conversations successfully",
+            "data": data,
+        },
+    )

@@ -1,6 +1,7 @@
 import textract
 import os
 import threading
+import uuid
 
 from src import AgenticRAG
 from const import ContextualRAGConfig
@@ -113,16 +114,7 @@ class AgentService:
             return False
         return True
     
-    def create_conversation(self, chatbot_id: str, conversation_id: str, username: str):
-        user = self.database_instance.read_by(
-            table="users",
-            column="username",
-            value=username
-        )
-        if not user:
-            logger.error(f"User not found: {username}")
-            return False
-    
+    def get_documents(self, chatbot_id: str):
         sql_query = """
             select documents.id from chatbot_knowledges join knowledges 
             on chatbot_knowledges.knowledge_id = knowledges.id join documents
@@ -141,6 +133,19 @@ class AgentService:
         
         doc_ids = [doc["id"] for doc in documents] if len(documents) > 0 else None
         
+        return doc_ids
+    
+    def create_conversation(self, chatbot_id: str, conversation_id: str, username: str):
+        user = self.database_instance.read_by(
+            table="users",
+            column="username",
+            value=username
+        )
+        if not user:
+            logger.error(f"User not found: {username}")
+            return False
+    
+        doc_ids = self.get_documents(chatbot_id)
         if not self.agentic._load_tools(
             conversation_id=conversation_id,
             document_ids=doc_ids
@@ -161,12 +166,40 @@ class AgentService:
             logger.error(f"Failed to create conversation {conversation_id}")
             return False
         
+        first_message = self.database_instance.create(
+            "messages",
+            **{
+                "id": str(uuid.uuid4()),
+                "conversation_id": conversation_id,
+                "content": "Hello, this is the initial message",
+                "type": "assistant",
+                "message_index": 0,
+            }
+        )
+        if not first_message:
+            if not self.database_instance.delete("conversations", conversation_id):
+                logger.error(f"Failed to delete conversation {conversation_id}")
+            logger.error(f"Failed to insert first message for conversation {conversation_id}")
+            return False
+        
         return True
     
     def get_conversation(self, conversation_id: str):
+        
+        conversation = self.database_instance.read(
+            "conversations",
+            conversation_id,
+            fetch_one=True,
+            fetch_all=False
+        )
+        if not conversation:
+            logger.error(f"Failed to get conversation {conversation_id}")
+            return None
+        
         sql_query = """
             select messages.* from conversations join messages on
-            conversations.id = messages.conversation_id where conversations.id = ?;
+            conversations.id = messages.conversation_id where conversations.id = ?
+            order by messages.message_index asc;
         """
         
         messages = self.database_instance.execute_query(
@@ -180,9 +213,40 @@ class AgentService:
             logger.error(f"Failed to get messages for conversation {conversation_id}")
             return None
         
+        if conversation_id not in self.agentic.agents:
+            doc_ids = self.get_documents(conversation["chatbot_id"])
+            if not self.agentic._load_tools(
+                conversation_id=conversation_id,
+                document_ids=doc_ids
+            ): 
+                logger.error(f"Failed to load tools for bot {conversation['chatbot_id']}")
+                return None
+        
         logger.info(f"Get conversation {conversation_id} messages successfully")
         
         return messages
+    
+    
+    def list_conversations(self, chatbot_id: str):
+        sql_query = """
+            select conversations.* from chatbots join conversations on
+            chatbots.id = conversations.chatbot_id where chatbots.id = ?;
+        """
+        
+        conversations = self.database_instance.execute_query(
+            sql_query,
+            (chatbot_id,),
+            fetch_all=True,
+            fetch_one=False
+        )
+        
+        if not conversations:
+            logger.error(f"Failed to get conversations in chatbot {chatbot_id}")
+            return None
+        
+        logger.info(f"Get conversations in chatbot {chatbot_id} successfully")
+        
+        return conversations
     
     
     def chat(self, query: str, conversation_id:str):
@@ -191,6 +255,47 @@ class AgentService:
             query=query,
             conversation_id=conversation_id
         )
+
+        text = response.response
+        
+        current_count_message = self.database_instance.count_by(
+            "messages",
+            "conversation_id",
+            conversation_id
+        )
+        
+        if not current_count_message:
+            current_count_message = 0
+        
+        logger.info(f"Current count message: {current_count_message}")
+        
+        current_count_message = current_count_message["COUNT(*)"]
+            
+        message = self.database_instance.create(
+            "messages",
+            **{
+                "id": str(uuid.uuid4()),
+                "conversation_id": conversation_id,
+                "content": text,
+                "type": "user",
+                "message_index": current_count_message
+            }
+        )
+            
+        message = self.database_instance.create(
+            "messages",
+            **{
+                "id": str(uuid.uuid4()),
+                "conversation_id": conversation_id,
+                "content": text,
+                "type": "assistant",
+                "message_index": current_count_message + 1  
+            }
+        )
+        
+        if not message:
+            logger.error(f"Failed to insert message for conversation {conversation_id}")
+            return None
 
         return response
     

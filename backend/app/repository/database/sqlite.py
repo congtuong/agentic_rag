@@ -47,9 +47,9 @@ class SQLiteDatabaseRepository(BaseDatabaseRepository):
             with self.get_client() as conn:
                 conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
+                logger.info(f"Query executing: {query}")
                 cursor.execute(query, params if params else ())
-                logger.info(f"Query executed: {query}")
-                logger.info(f"Params: {params}")
+                logger.info(f"Executed with Params: {params}")
                 if fetch_one:
                     row = cursor.fetchone()
                     if row is None:
@@ -95,3 +95,8 @@ class SQLiteDatabaseRepository(BaseDatabaseRepository):
         """Retrieve a record by a specified column value."""
         query = f"SELECT * FROM {table} WHERE {column} = ?;"
         return self.execute_query(query, (value,), fetch_one=fetch_one, fetch_all=fetch_all)
+    
+    def count_by(self, table, column, value):
+        """Count the number of records by a specified column value."""
+        query = f"SELECT COUNT(*) FROM {table} WHERE {column} = ?;"
+        return self.execute_query(query, (value,), fetch_one=True)

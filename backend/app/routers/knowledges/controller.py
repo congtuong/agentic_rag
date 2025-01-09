@@ -115,7 +115,7 @@ async def create_chatbot(
         status_code=200,
     )
     
-@router.get("/chatbot/{chatbot_id}", dependencies=[Depends(security)])
+@router.get("/chatbot/get/{chatbot_id}", dependencies=[Depends(security)])
 async def get_chatbot(
     request: Request,
     chatbot_id: str,
@@ -150,6 +150,47 @@ async def get_chatbot(
         content=ResponseModel(
             data=chatbot,
             message="Chatbot found",
+            status=200,
+        ),
+        status_code=200,
+    )
+
+@router.get("/chatbot/list", dependencies=[Depends(security)])
+async def list_chatbots(
+    request: Request,
+):
+    """
+    List chatbots
+    """
+    logger.info(f"List chatbots request incoming")
+    
+    if not AUTH_SERVICE.is_access_token(request.state.user):
+        return JSONResponse(
+            content=ResponseModel(
+                data={},
+                message="Unauthorized",
+                status=401,
+            ),
+            status_code=401,
+        )
+
+    chatbots = KNOWLEDGE_SERVICE.list_chatbot(
+        username=request.state.user["username"]
+    )
+    if not chatbots:
+        return JSONResponse(
+            content=ResponseModel(
+                data={},
+                message="No chatbots found",
+                status=404,
+            ),
+            status_code=404,
+        )
+        
+    return JSONResponse(
+        content=ResponseModel(
+            data=chatbots,
+            message="Chatbots found",
             status=200,
         ),
         status_code=200,
