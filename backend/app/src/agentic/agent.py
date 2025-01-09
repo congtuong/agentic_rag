@@ -1,4 +1,7 @@
 import time
+import threading
+import json
+import os
 
 from typing import Dict, Any, List, Tuple, Union
 from llama_index.vector_stores.milvus.utils import (
@@ -41,7 +44,7 @@ class AgenticRAG:
         Settings.llm = self.rag.llm
         Settings.embed_model = self.rag.embedder
         self.agents = {}
-        self.agent_live_time = 60 * 60 * 24  # 1 day
+        self.agent_live_time = int(config.get("AGENT_LIVE_TIME", 60*60*24))
         self._load_tools()
         
     def _load_tools(
@@ -131,7 +134,7 @@ class AgenticRAG:
             #     verbose=True,
             #     chat_mode="react",
             # )
-            
+                            
             self.agents[conversation_id] = {
                 "agent": agent,
                 "updated_at": time.time(),
@@ -141,6 +144,18 @@ class AgenticRAG:
         except Exception as e:
             logger.error(f"Error loading tools: {e}")
             return False
+        finally:
+            threading.Thread(target=self.delete_dead_agents).start()
+    
+    def delete_dead_agents(self):
+        current_time = time.time()
+        dead_agents = []
+        for conversation_id, agent in self.agents.items():
+            if current_time - agent["updated_at"] > self.agent_live_time:
+                dead_agents.append(conversation_id)
+                
+        for conversation_id in dead_agents:
+            del self.agents[conversation_id]
         
     def chat(
         self, 
