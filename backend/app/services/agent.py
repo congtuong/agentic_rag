@@ -7,6 +7,7 @@ from src import AgenticRAG
 from const import ContextualRAGConfig
 
 from llama_index.core import Document
+from llama_index.core.llms import ChatMessage, MessageRole
 from utils.logger import get_logger
 
 logger = get_logger()
@@ -209,6 +210,13 @@ class AgentService:
             fetch_one=False
         )
         
+        history = [
+            ChatMessage(
+                content = message["content"],
+                role = MessageRole.USER if message["type"] == "user" else MessageRole.ASSISTANT,
+            ) for message in messages
+        ]
+        
         if not messages:
             logger.error(f"Failed to get messages for conversation {conversation_id}")
             return None
@@ -217,7 +225,8 @@ class AgentService:
             doc_ids = self.get_documents(conversation["chatbot_id"])
             if not self.agentic._load_tools(
                 conversation_id=conversation_id,
-                document_ids=doc_ids
+                document_ids=doc_ids,
+                history=history
             ): 
                 logger.error(f"Failed to load tools for bot {conversation['chatbot_id']}")
                 return None

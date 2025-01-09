@@ -10,8 +10,9 @@ from llama_index.core.agent import ReActAgent
 from llama_index.core.tools import BaseTool, FunctionTool
 from llama_index.core.memory import VectorMemory , ChatMemoryBuffer
 from llama_index.core import (
-    Settings,
+    Settings, 
 )
+from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core import get_response_synthesizer
 from llama_index.core.query_engine import RetrieverQueryEngine
 
@@ -47,7 +48,7 @@ class AgenticRAG:
         self,
         conversation_id: str = "default",  
         document_ids: List[str] = None,
-        history: List[dict] = None,
+        history: List[ChatMessage] = None,
     ):
         try:
             tools = []
@@ -84,9 +85,10 @@ class AgenticRAG:
                 query_tools
             )
             # tools.extend(google_tools)
-        
+
+            logger.info(f"Init history: {history}")
             memory = ChatMemoryBuffer.from_defaults(
-                chat_history=[],
+                chat_history=history,
                 llm=self.rag.llm,
                 )
             
