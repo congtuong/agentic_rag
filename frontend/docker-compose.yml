@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+    proj-fe:
+        container_name: proj-fe
+        build:
+            context: ./
+            target: runner
+            dockerfile: Dockerfile
+        restart: always
+        ports:
+            - 3000:3000
+        env_file:
+            - .env.local
+        environment:
+            - NODE_ENV=production
+        networks:
+            - default
