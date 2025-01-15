@@ -31,12 +31,12 @@ export function LoginForm() {
 	});
 	const router = useRouter();
 	const { toast } = useToast();
-	const { login } = useAuth();
+	const { loginProvider } = useAuth();
 
 	const handleLogin = async (values: z.infer<typeof LoginFormProps>) => {
 		try {
 			console.log(values);
-			await login(values);
+			await loginProvider(values);
 			toast({
 				title: "Login success~",
 			});
@@ -108,15 +108,21 @@ export function LoginForm() {
 										)}
 									/>
 								</div>
-								<Button type="submit" className="w-full">
+								<Button type="submit" className="w-full hover:bg-slate-500">
 									Login
 								</Button>
-								<Button type="button" className="w-full">
+								<Button
+									type="button"
+									className="w-full bg-blue-500 hover:bg-slate-500"
+								>
 									Login with Google
 								</Button>
 								<div className="mt-4 text-center text-sm">
 									Don&apos;t have an account?{" "}
-									<a href="#" className="underline underline-offset-4">
+									<a
+										href="/auth/register"
+										className="underline underline-offset-4 hover:text-blue-500"
+									>
 										Sign up
 									</a>
 								</div>

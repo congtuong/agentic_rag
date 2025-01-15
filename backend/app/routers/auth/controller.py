@@ -14,7 +14,7 @@ from bootstrap import AUTH_SERVICE
 from fastapi import FastAPI, APIRouter
 from fastapi.responses import JSONResponse
 from fastapi import Request, Depends
-from fastapi.security import HTTPBearer
+from fastapi.security import HTTPBearer, APIKeyCookie
 
 router = APIRouter()
 
@@ -22,6 +22,7 @@ logger = get_logger()
 config = get_config()
 
 security = HTTPBearer()
+cookie_security = APIKeyCookie(name="refresh_token")
 
 
 @router.post("/login")
@@ -120,7 +121,7 @@ async def register(
     )
 
 
-@router.post("/refresh", dependencies=[Depends(security)])
+@router.post("/refresh", dependencies=[Depends(cookie_security)])
 async def refresh(
     request: Request,
 ):
@@ -147,12 +148,22 @@ async def refresh(
         )
 
     if isinstance(res, dict):
-        return JSONResponse(
+        response = JSONResponse(
             status_code=200,
             content=ResponseModel(
                 status=200, message="Refresh token successfully", data=res
             ),
         )
+        response.set_cookie(
+            key="access_token",
+            value=res["access_token"],
+            httponly=False,
+            max_age=int(config["ACCESS_TOKEN_EXPIRES"]) * 60,
+            expires=int(config["ACCESS_TOKEN_EXPIRES"]) * 60,
+            secure=False,
+        )
+        return response
+
     return JSONResponse(
         status_code=500,
         content=ResponseModel(status=500, message="Internal server error", data={}),

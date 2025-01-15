@@ -129,7 +129,7 @@ app.add_middleware(
 if config["CORS"] == "true":
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=["http://localhost:30000", "http://localhost:30001"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

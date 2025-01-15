@@ -21,9 +21,11 @@ import {
 interface AuthContextType {
 	user: IUser | null;
 	accessToken: string;
-	login: (body: ILoginFormValues) => Promise<IAPIResponse<IProfileResponse>>;
-	logout: () => void;
-	register: (body: IRegisterFormValues) => Promise<IRegisterResponse>;
+	loginProvider: (
+		body: ILoginFormValues
+	) => Promise<IAPIResponse<IProfileResponse>>;
+	logoutProvider: () => void;
+	registerProvider: (body: IRegisterFormValues) => Promise<IRegisterResponse>;
 	loading: boolean;
 	isAuthenticated: boolean;
 }
@@ -43,13 +45,41 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 	const router = useRouter();
 	const pathname = usePathname();
 	const redirectURL = encodeURIComponent(pathname);
+	const publicPaths = ["/auth/login", "/auth/register"];
 
+	const refreshTokens = async () => {
+		try {
+			const response = await fetch(
+				`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					credentials: "include",
+				}
+			);
+
+			if (!response.ok) {
+				throw new Error("Failed to refresh tokens");
+			}
+
+			setAccessToken(getCookie("access_token") as string);
+
+			return response;
+		} catch (error) {
+			console.error("Failed to refresh tokens:", error);
+			setIsAuthenticated(false);
+			setUser(null);
+			setAccessToken("");
+		}
+	};
 	useEffect(() => {
 		const verifyToken = async () => {
 			try {
 				const user_access_token = getCookie("access_token") as string;
 				if (!user_access_token) {
-					throw new Error("Token not found");
+					await refreshTokens();
 				}
 
 				// Optionally, call an endpoint to verify the token's validity
@@ -63,6 +93,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 				setUser(userData.data);
 				setAccessToken(user_access_token);
 				setIsAuthenticated(true);
+
+				if (userData.data.user_role === "admin") {
+					router.push("/admin");
+				} else {
+					router.push("/user");
+				}
 			} catch (error) {
 				console.error("Token verification failed:", error);
 				setUser(null);
@@ -76,7 +112,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
 		const intervalId = setInterval(() => {
 			verifyToken();
-		}, 30000);
+		}, 300000);
 
 		return () => {
 			clearInterval(intervalId);
@@ -84,7 +120,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 	}, [router, pathname]);
 
 	useEffect(() => {
-		if (isLoggedOut && pathname !== "/auth/login") {
+		if (isLoggedOut && !publicPaths.includes(pathname)) {
 			router.push(`/auth/login?redirect=${redirectURL}`);
 			setIsLoggedOut(false);
 		}
@@ -95,13 +131,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 			try {
 				const user_access_token = getCookie("access_token") as string;
 				if (!user_access_token) {
-					throw new Error("Token not found");
+					await refreshTokens();
 				}
 				const response = await fetchProfile();
 				if (!response.ok) {
 					throw new Error("Invalid token");
 				}
 				const userData: IAPIResponse<IProfileResponse> = await response.json();
+				if (userData.data.user_role === "admin") {
+					router.push("/admin");
+				} else {
+					router.push("/user");
+				}
 				setAccessToken(user_access_token);
 				setUser(userData.data);
 				setIsAuthenticated(true);
@@ -115,7 +156,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 		loadUserFromToken();
 	}, []);
 
-	const login = async (body: ILoginFormValues) => {
+	const loginProvider = async (body: ILoginFormValues) => {
 		try {
 			setLoading(true);
 			const response = await fetchLogin(body);
@@ -155,7 +196,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 		}
 	};
 
-	const logout = () => {
+	const logoutProvider = () => {
 		setUser(null);
 		setAccessToken("");
 		setLoading(false);
@@ -165,13 +206,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 		setCookie("refresh_token", "", { maxAge: -1, path: "/" });
 	};
 
-	const register = async (body: IRegisterFormValues) => {
+	const registerProvider = async (body: IRegisterFormValues) => {
 		try {
 			const result = await fetchRegister(body);
 			if (!result.ok) {
 				throw new Error("Registration failed");
 			}
 			const data: IAPIResponse<IRegisterResponse> = await result.json();
+
+			router.push("/auth/login");
 
 			return data.data;
 		} catch (err) {
@@ -185,9 +228,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 			value={{
 				user,
 				accessToken,
-				login,
-				logout,
-				register,
+				loginProvider,
+				logoutProvider,
+				registerProvider,
 				loading,
 				isAuthenticated,
 			}}

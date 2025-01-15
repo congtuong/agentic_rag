@@ -28,9 +28,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 logger.info(f"Protected route: {request.url.path}")
                 bearer_token = request.headers.get("Authorization")
                 cookie_token = request.cookies.get("refresh_token")
-                if cookie_token:
+
+                if cookie_token and request.url.path == "/auth/refresh":
+                    logger.info(f"Cookie token: {cookie_token}")
                     token = cookie_token
-                if not bearer_token:
+                elif not bearer_token:
                     return JSONResponse(
                         status_code=401,
                         content=ResponseModel(
