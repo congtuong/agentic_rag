@@ -54,8 +54,8 @@ export interface IConversationResponse {
 	id: string;
 	chatbot_id: string;
 	user_id: string;
-	created_at: string;
-	updated_at: string;
+	created_at?: string;
+	updated_at?: string;
 }
 
 export interface IMessageResponse {
@@ -64,6 +64,27 @@ export interface IMessageResponse {
 	content: string;
 	message_index: number;
 	type: string;
-	created_at: string;
-	updated_at: string;
+	created_at?: string;
+	updated_at?: string;
+}
+
+export interface ChatResponse {
+	id: string;
+	conversation_id: string;
+	content: string;
+	message_index: number;
+	type: string;
+}
+
+export interface IChatResponse {
+	query: ChatResponse;
+	response: ChatResponse;
+}
+
+export interface INewConversationResponse {
+	id: string;
+	chatbot_id: string;
+	user_id: string;
+	created_at?: string;
+	updated_at?: string;
 }

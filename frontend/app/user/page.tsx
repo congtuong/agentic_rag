@@ -1,6 +1,5 @@
-import { Mail } from "@/components/user/mail";
+import { Conversations } from "@/components/user/conversation";
 import { cookies } from "next/headers";
-import { accounts, mails } from "@/components/user/temp";
 
 const UserPage = () => {
 	const layout = cookies().get("react-resizable-panels:layout:mail");
@@ -9,9 +8,7 @@ const UserPage = () => {
 	const defaultCollapsed = collapsed ? JSON.parse(collapsed.value) : undefined;
 	return (
 		<div>
-			<Mail
-				accounts={accounts}
-				mails={mails}
+			<Conversations
 				defaultLayout={defaultLayout}
 				defaultCollapsed={defaultCollapsed}
 				navCollapsedSize={4}

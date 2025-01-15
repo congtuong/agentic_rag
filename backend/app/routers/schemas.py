@@ -65,3 +65,8 @@ class ProfileResponse(BaseModel):
     user_role: str
     created_at: str
     updated_at: str
+
+
+class ChatRequest(BaseModel):
+    query: str
+    conversation_id: str

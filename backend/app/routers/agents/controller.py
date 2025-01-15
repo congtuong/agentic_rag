@@ -4,17 +4,17 @@ import shutil
 import os
 import json
 
-from fastapi import APIRouter, Depends,File,UploadFile, Request
+from fastapi import APIRouter, Depends, File, UploadFile, Request
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer
-from typing import Annotated,List
+from typing import Annotated, List
 
 from llama_index.core import Document
 
 from utils.logger import get_logger
 from utils.checker import check_upload_file
 
-from routers.schemas import ResponseModel
+from routers.schemas import ResponseModel, ChatRequest
 
 from bootstrap import (
     CLOUD_SERVICE,
@@ -28,6 +28,7 @@ router = APIRouter()
 logger = get_logger()
 
 security = HTTPBearer()
+
 
 @router.post("/chat", dependencies=[Depends(security)])
 async def search_vector(
@@ -43,9 +44,9 @@ async def search_vector(
             status_code=401,
             content=ResponseModel(status=401, message="Unauthorized", data={}).dict(),
         )
-    
+
     data = AGENTIC_SERVICE.chat(query).response
-        
+
     return JSONResponse(
         status_code=200,
         content={
@@ -54,6 +55,7 @@ async def search_vector(
             "data": data,
         },
     )
+
 
 @router.get("/conversation/{conversation_id}", dependencies=[Depends(security)])
 async def get_conversation(
@@ -69,9 +71,9 @@ async def get_conversation(
             status_code=401,
             content=ResponseModel(status=401, message="Unauthorized", data={}).dict(),
         )
-    
+
     data = AGENTIC_SERVICE.get_conversation(conversation_id)
-    
+
     if not data:
         return JSONResponse(
             status_code=404,
@@ -81,7 +83,7 @@ async def get_conversation(
                 "data": {},
             },
         )
-        
+
     return JSONResponse(
         status_code=200,
         content={
@@ -90,11 +92,11 @@ async def get_conversation(
             "data": data,
         },
     )
-    
-@router.post("/conversation/{conversation_id}/chat", dependencies=[Depends(security)])
+
+
+@router.post("/conversation/chat", dependencies=[Depends(security)])
 async def chat(
-    conversation_id: str,
-    query: str,
+    chat_request: ChatRequest,
     request: Request,
 ):
     """
@@ -107,7 +109,8 @@ async def chat(
             content=ResponseModel(status=401, message="Unauthorized", data={}).dict(),
         )
     try:
-        data = AGENTIC_SERVICE.chat(query, conversation_id).response
+        data = AGENTIC_SERVICE.chat(chat_request.query, chat_request.conversation_id)
+
     except Exception as e:
         return JSONResponse(
             status_code=500,
@@ -117,7 +120,7 @@ async def chat(
                 "data": {},
             },
         )
-        
+
     return JSONResponse(
         status_code=200,
         content={
@@ -126,6 +129,7 @@ async def chat(
             "data": data,
         },
     )
+
 
 @router.post("/conversation/create", dependencies=[Depends(security)])
 async def create_conversation(
@@ -141,11 +145,13 @@ async def create_conversation(
             status_code=401,
             content=ResponseModel(status=401, message="Unauthorized", data={}).dict(),
         )
-    
+
     conversaton_id = str(uuid.uuid4())
-    
-    data = AGENTIC_SERVICE.create_conversation(chatbot_id, conversaton_id, request.state.user['username'])
-    
+
+    data = AGENTIC_SERVICE.create_conversation(
+        chatbot_id, conversaton_id, request.state.user["username"]
+    )
+
     if not data:
         return JSONResponse(
             status_code=404,
@@ -155,15 +161,20 @@ async def create_conversation(
                 "data": {},
             },
         )
-        
+
     return JSONResponse(
         status_code=200,
         content={
             "status": 200,
             "message": "Create conversation successfully",
-            "data": {"conversation_id": conversaton_id},
+            "data": {
+                "conversation_id": conversaton_id,
+                "chatbot_id": chatbot_id,
+                "username": request.state.user["username"],
+            },
         },
     )
+
 
 @router.get("/{chatbot_id}/conversations/list", dependencies=[Depends(security)])
 async def list_conversations(
@@ -179,9 +190,9 @@ async def list_conversations(
             status_code=401,
             content=ResponseModel(status=401, message="Unauthorized", data={}).dict(),
         )
-    
+
     data = AGENTIC_SERVICE.list_conversations(chatbot_id)
-    
+
     if not data:
         return JSONResponse(
             status_code=404,
@@ -191,7 +202,7 @@ async def list_conversations(
                 "data": {},
             },
         )
-        
+
     return JSONResponse(
         status_code=200,
         content={

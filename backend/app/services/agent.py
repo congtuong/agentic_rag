@@ -258,30 +258,37 @@ class AgentService:
 
         current_count_message = current_count_message["COUNT(*)"]
 
+        query_record = {
+            "id": str(uuid.uuid4()),
+            "conversation_id": conversation_id,
+            "content": query,
+            "type": "user",
+            "message_index": current_count_message,
+        }
+
+        response_record = {
+            "id": str(uuid.uuid4()),
+            "conversation_id": conversation_id,
+            "content": text,
+            "type": "assistant",
+            "message_index": current_count_message + 1,
+        }
+
         message = self.database_instance.create(
             "messages",
-            **{
-                "id": str(uuid.uuid4()),
-                "conversation_id": conversation_id,
-                "content": query,
-                "type": "user",
-                "message_index": current_count_message,
-            },
+            **query_record,
         )
 
         message = self.database_instance.create(
             "messages",
-            **{
-                "id": str(uuid.uuid4()),
-                "conversation_id": conversation_id,
-                "content": text,
-                "type": "assistant",
-                "message_index": current_count_message + 1,
-            },
+            **response_record,
         )
 
         if not message:
             logger.error(f"Failed to insert message for conversation {conversation_id}")
             return None
 
-        return response
+        return {
+            "query": query_record,
+            "response": response_record,
+        }

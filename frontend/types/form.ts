@@ -17,3 +17,7 @@ export const RegisterFormProps = z.object({
 		.max(32, "Password must be at most 32 characters long"),
 	user_fullname: z.string().nonempty(),
 });
+
+export const ChatFormProps = z.object({
+	query: z.string().nonempty(),
+});

@@ -2,22 +2,14 @@
 
 import * as React from "react";
 import {
-	AlertCircle,
-	Archive,
-	ArchiveX,
 	Bot,
 	Check,
 	ChevronsUpDown,
-	File,
 	FileText,
-	Inbox,
 	Layers,
 	MessagesSquare,
+	PlusCircleIcon,
 	Search,
-	Send,
-	ShoppingCart,
-	Trash2,
-	Users2,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -30,12 +22,9 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AccountSwitcher } from "@/components/user/account-switcher";
-import { ChatDisplay } from "@/components/user/mail-display";
-import { ConversationList } from "@/components/user/mail-list";
+import { ChatDisplay } from "@/components/user/chat-display";
+import { ConversationList } from "@/components/user/conversation-list";
 import { Nav } from "@/components/user/nav";
-import { type Mail } from "./temp";
-import { useMail } from "./temp";
 import {
 	Command,
 	CommandEmpty,
@@ -58,28 +47,20 @@ import {
 } from "@/types";
 import { fetchWithToken } from "@/api/auth";
 import { useToast } from "@/hooks/use-toast";
+import { NewConversation } from "./new-conversation";
 
-interface MailProps {
-	accounts: {
-		label: string;
-		email: string;
-		icon: React.ReactNode;
-	}[];
-	mails: Mail[];
+interface ConversationProps {
 	defaultLayout: number[] | undefined;
 	defaultCollapsed?: boolean;
 	navCollapsedSize: number;
 }
 
-export function Mail({
-	accounts,
-	mails,
+export function Conversations({
 	defaultLayout = [20, 32, 48],
 	defaultCollapsed = false,
 	navCollapsedSize,
-}: MailProps) {
+}: ConversationProps) {
 	const [isCollapsed, setIsCollapsed] = React.useState(defaultCollapsed);
-	const [mail] = useMail();
 	const [open, setOpen] = React.useState(false);
 	const [selectedConversation, setSelectedConversation] =
 		React.useState<IConversationResponse | null>(null);
@@ -110,6 +91,7 @@ export function Mail({
 				const data: IAPIResponse<IChatBotResponse[]> = await response.json();
 
 				setChatbots(data.data);
+				setSelectedChatbot(data.data[0]);
 			} catch (error) {
 				toast({
 					title: "Failed to fetch chatbots",
@@ -138,6 +120,7 @@ export function Mail({
 					await response.json();
 
 				setConversations(data.data);
+				setSelectedConversation(data.data[0]);
 				toast({
 					title: "Fetched conversation",
 				});
@@ -224,7 +207,7 @@ export function Mail({
 							isCollapsed ? "h-[52px]" : "px-2"
 						)}
 					>
-						<AccountSwitcher isCollapsed={isCollapsed} accounts={accounts} />
+						{/* <AccountSwitcher isCollapsed={isCollapsed} accounts={accounts} /> */}
 					</div>
 					<Separator />
 					<Nav
@@ -322,6 +305,15 @@ export function Mail({
 						</div>
 						<Separator />
 						<div className="bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+							<NewConversation
+								chatbots={chatbots}
+								setSelectedConversation={setSelectedConversation}
+								setSelectedChatbot={setSelectedChatbot}
+								setConversations={setConversations}
+							/>
+						</div>
+						<Separator />
+						<div className="bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
 							<form>
 								<div className="relative">
 									<Search className="absolute left-2 top-2 h-4 w-4 text-muted-foreground" />
@@ -342,7 +334,10 @@ export function Mail({
 				</ResizablePanel>
 				<ResizableHandle withHandle />
 				<ResizablePanel defaultSize={defaultLayout[2]} minSize={30}>
-					<ChatDisplay items={messages} />
+					<ChatDisplay
+						items={messages}
+						selectedConversation={selectedConversation}
+					/>
 				</ResizablePanel>
 			</ResizablePanelGroup>
 		</TooltipProvider>
