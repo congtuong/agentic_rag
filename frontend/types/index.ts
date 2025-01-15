@@ -39,3 +39,31 @@ export interface IRegisterResponse {
 	email: string;
 	user_fullname: string;
 }
+
+export interface IChatBotResponse {
+	id: string;
+	user_id: string;
+	name: string;
+	config: string;
+	status: string;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface IConversationResponse {
+	id: string;
+	chatbot_id: string;
+	user_id: string;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface IMessageResponse {
+	id: string;
+	conversation_id: string;
+	content: string;
+	message_index: number;
+	type: string;
+	created_at: string;
+	updated_at: string;
+}

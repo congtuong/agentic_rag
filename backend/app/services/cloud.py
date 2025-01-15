@@ -1,5 +1,6 @@
 from repository.cloud import S3CloudRepository
 
+
 class CloudService:
     def __init__(
         self,
@@ -19,7 +20,7 @@ class CloudService:
             )
         else:
             raise Exception("Invalid cloud service type")
-        
+
     def upload_fileobj(
         self,
         object_name: str,
@@ -33,6 +34,3 @@ class CloudService:
             object_name=object_name,
             file=file_path,
         )
-        
-    
-            

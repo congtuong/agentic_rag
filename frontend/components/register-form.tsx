@@ -46,6 +46,10 @@ export default function RegisterForm() {
 			setServerError(
 				"An error occurred during registration. Please try again."
 			);
+			toast({
+				title: "Registration failed",
+				description: `${error}`,
+			});
 		}
 	};
 

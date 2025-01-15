@@ -12,7 +12,7 @@ from routers.schemas import (
 from bootstrap import AUTH_SERVICE
 
 from fastapi import FastAPI, APIRouter
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi import Request, Depends
 from fastapi.security import HTTPBearer, APIKeyCookie
 
@@ -221,3 +221,18 @@ async def profile(
         status_code=500,
         content=ResponseModel(status=500, message="Internal server error", data={}),
     )
+
+
+@router.get("/logout")
+async def logout(
+    request: Request,
+):
+    """
+    Logout
+    """
+
+    response = RedirectResponse(url=f"{config['FRONTEND_URL']}/auth/login")
+    response.delete_cookie(key="access_token")
+    response.delete_cookie(key="refresh_token")
+
+    return response

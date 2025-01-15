@@ -65,11 +65,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 			}
 
 			setAccessToken(getCookie("access_token") as string);
+			setIsAuthenticated(true);
+			setIsLoggedOut(false);
 
 			return response;
 		} catch (error) {
 			console.error("Failed to refresh tokens:", error);
 			setIsAuthenticated(false);
+			setIsLoggedOut(true);
 			setUser(null);
 			setAccessToken("");
 		}
@@ -133,6 +136,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 				if (!user_access_token) {
 					await refreshTokens();
 				}
+
 				const response = await fetchProfile();
 				if (!response.ok) {
 					throw new Error("Invalid token");

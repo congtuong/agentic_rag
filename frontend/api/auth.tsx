@@ -47,4 +47,17 @@ const fetchRegister = async (body: IRegisterFormValues) => {
 	return response;
 };
 
-export { fetchLogin, fetchProfile, fetchRegister };
+const fetchWithToken = async (url: string, method: string, body?: any) => {
+	const header = new Headers();
+	header.append("content-type", "application/json");
+	header.append("authorization", `Bearer ${getCookie("access_token")}`);
+
+	const response = await fetch(url, {
+		method,
+		headers: header,
+		body: JSON.stringify(body),
+	});
+	return response;
+};
+
+export { fetchLogin, fetchProfile, fetchRegister, fetchWithToken };
