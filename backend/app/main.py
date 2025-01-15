@@ -36,6 +36,7 @@ This is API.
 #     },
 # ]
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
@@ -46,6 +47,7 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down")
     # singletons.shutdown()
+
 
 app = FastAPI(
     docs_url=config["DOCS_URL"] if config["MODE"] == "development" else None,
@@ -71,14 +73,6 @@ async def add_process_time_header(request: Request, call_next):
     response.headers["X-Process-Time"] = str(process_time)
     return response
 
-if config["CORS"]:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins="*",
-        allow_credentials=True,
-        allow_methods="*",
-        allow_headers="*",
-    )
 
 @app.exception_handler(status.HTTP_500_INTERNAL_SERVER_ERROR)
 async def internal_exception_handler(request: Request, exc: Exception):
@@ -106,10 +100,12 @@ async def healh_check():
         "status": "Running (Healthy)",
     }
 
+
 from routers.agents.controller import router as agents_router
 from routers.auth.controller import router as auth_router
 from routers.documents.controller import router as documents_router
 from routers.knowledges.controller import router as knowledges_router
+
 app.include_router(agents_router, prefix="/agents", tags=["agents"])
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 app.include_router(documents_router, prefix="/documents", tags=["documents"])
@@ -121,8 +117,23 @@ app.add_middleware(
     AuthMiddleware,
     auth_secret_key=config["AUTH_SECRET_KEY"],
     # Add protected prefix here, if only an endpoint of a specific prefix needs to be protected, simply add the whole endpoint
-    protected_prefix=["/agents", "/auth/refresh", "/documents", "/knowledges"],
+    protected_prefix=[
+        "/agents",
+        "/auth/refresh",
+        "/auth/profile",
+        "/documents",
+        "/knowledges",
+    ],
 )
+
+if config["CORS"] == "true":
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
 if __name__ == "__main__":
