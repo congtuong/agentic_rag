@@ -210,35 +210,7 @@ export function Conversations({
 						{/* <AccountSwitcher isCollapsed={isCollapsed} accounts={accounts} /> */}
 					</div>
 					<Separator />
-					<Nav
-						isCollapsed={isCollapsed}
-						links={[
-							{
-								title: "Conversations",
-								label: "128",
-								icon: MessagesSquare,
-								variant: "default",
-							},
-							{
-								title: "Chat Bots",
-								label: "9",
-								icon: Bot,
-								variant: "ghost",
-							},
-							{
-								title: "Knowledge Base",
-								label: "",
-								icon: Layers,
-								variant: "ghost",
-							},
-							{
-								title: "Documents",
-								label: "23",
-								icon: FileText,
-								variant: "ghost",
-							},
-						]}
-					/>
+					<Nav isCollapsed={isCollapsed} />
 				</ResizablePanel>
 				<ResizableHandle withHandle />
 				<ResizablePanel defaultSize={defaultLayout[1]} minSize={30}>

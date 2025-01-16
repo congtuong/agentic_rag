@@ -142,11 +142,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 					throw new Error("Invalid token");
 				}
 				const userData: IAPIResponse<IProfileResponse> = await response.json();
-				if (userData.data.user_role === "admin") {
-					router.push("/admin");
-				} else {
-					router.push("/user");
-				}
+				// if (userData.data.user_role === "admin") {
+				// 	router.push("/admin");
+				// } else {
+				// 	router.push("/user");
+				// }
 				setAccessToken(user_access_token);
 				setUser(userData.data);
 				setIsAuthenticated(true);

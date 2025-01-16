@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LucideIcon } from "lucide-react";
+import { Bot, FileText, Layers, LucideIcon, MessageSquare } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
@@ -13,15 +13,55 @@ import {
 
 interface NavProps {
 	isCollapsed: boolean;
-	links: {
+	links?: {
 		title: string;
 		label?: string;
 		icon: LucideIcon;
 		variant: "default" | "ghost";
+		href: string;
 	}[];
+	current: string;
 }
 
-export function Nav({ links, isCollapsed }: NavProps) {
+export function Nav({
+	links = [
+		{
+			title: "Conversations",
+			label: "128",
+			icon: MessageSquare,
+			variant: "default",
+			href: "/user",
+		},
+		{
+			title: "Chatbot",
+			label: "9",
+			icon: Bot,
+			variant: "ghost",
+			href: "/chatbots",
+		},
+		{
+			title: "Knowledge",
+			label: "",
+			icon: Layers,
+			variant: "ghost",
+			href: "/knowledge",
+		},
+		{
+			title: "Documents",
+			label: "23",
+			icon: FileText,
+			variant: "ghost",
+			href: "/documents",
+		},
+	],
+	isCollapsed,
+	current = "Conversations",
+}: NavProps) {
+	links = links.map((link) => ({
+		...link,
+		variant: link.title === current ? "default" : "ghost",
+	}));
+
 	return (
 		<div
 			data-collapsed={isCollapsed}
@@ -33,7 +73,7 @@ export function Nav({ links, isCollapsed }: NavProps) {
 						<Tooltip key={index} delayDuration={0}>
 							<TooltipTrigger asChild>
 								<Link
-									href="#"
+									href={link.href}
 									className={cn(
 										buttonVariants({ variant: link.variant, size: "icon" }),
 										"h-9 w-9",
@@ -57,7 +97,7 @@ export function Nav({ links, isCollapsed }: NavProps) {
 					) : (
 						<Link
 							key={index}
-							href="#"
+							href={link.href}
 							className={cn(
 								buttonVariants({ variant: link.variant, size: "sm" }),
 								link.variant === "default" &&
