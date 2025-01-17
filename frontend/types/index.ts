@@ -88,3 +88,22 @@ export interface INewConversationResponse {
 	created_at?: string;
 	updated_at?: string;
 }
+
+export interface IKnowledgesResponse {
+	id: string;
+	user_id: string;
+	name: string;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface IDocumentResponse {
+	id: string;
+	user_id: string;
+	file_name: string;
+	file_type: string;
+	file_size: number;
+	object_name: string;
+	created_at: string;
+	updated_at: string;
+}

@@ -48,6 +48,7 @@ import {
 import { fetchWithToken } from "@/api/auth";
 import { useToast } from "@/hooks/use-toast";
 import { NewConversation } from "./new-conversation";
+import { useAuth } from "@/hooks/use-auth";
 
 interface ConversationProps {
 	defaultLayout: number[] | undefined;
@@ -56,7 +57,7 @@ interface ConversationProps {
 }
 
 export function Conversations({
-	defaultLayout = [20, 32, 48],
+	defaultLayout = [15, 25, 60],
 	defaultCollapsed = false,
 	navCollapsedSize,
 }: ConversationProps) {
@@ -73,6 +74,7 @@ export function Conversations({
 	const [messages, setMessages] = React.useState<IMessageResponse[]>([]);
 
 	const { toast } = useToast();
+	const { accessToken } = useAuth();
 	React.useEffect(() => {
 		const fetchChatbots = async () => {
 			try {
@@ -99,7 +101,7 @@ export function Conversations({
 			}
 		};
 		fetchChatbots();
-	}, []);
+	}, [accessToken]);
 
 	React.useEffect(() => {
 		const fetchConversation = async () => {
@@ -183,7 +185,7 @@ export function Conversations({
 					collapsedSize={navCollapsedSize}
 					collapsible={true}
 					minSize={15}
-					maxSize={20}
+					maxSize={15}
 					onCollapse={() => {
 						setIsCollapsed(true);
 						document.cookie = `react-resizable-panels:collapsed=${JSON.stringify(
@@ -201,14 +203,14 @@ export function Conversations({
 							"min-w-[50px] transition-all duration-300 ease-in-out"
 					)}
 				>
-					<div
+					{/* <div
 						className={cn(
 							"flex h-[52px] items-center justify-center",
 							isCollapsed ? "h-[52px]" : "px-2"
 						)}
 					>
-						{/* <AccountSwitcher isCollapsed={isCollapsed} accounts={accounts} /> */}
-					</div>
+						<AccountSwitcher isCollapsed={isCollapsed} accounts={accounts} />
+					</div> */}
 					<Separator />
 					<Nav isCollapsed={isCollapsed} />
 				</ResizablePanel>
@@ -224,7 +226,7 @@ export function Conversations({
 											variant="outline"
 											role="combobox"
 											aria-expanded={open}
-											className="w-[200px] justify-between truncate"
+											className="w-full justify-between truncate"
 										>
 											{selectedChatbot
 												? chatbots.find(
@@ -234,7 +236,7 @@ export function Conversations({
 											<ChevronsUpDown className="opacity-50" />
 										</Button>
 									</PopoverTrigger>
-									<PopoverContent className="w-[200px] p-0">
+									<PopoverContent className="w-full p-0">
 										<Command>
 											<CommandInput
 												placeholder="Search chatbot..."
@@ -305,7 +307,7 @@ export function Conversations({
 					</Tabs>
 				</ResizablePanel>
 				<ResizableHandle withHandle />
-				<ResizablePanel defaultSize={defaultLayout[2]} minSize={30}>
+				<ResizablePanel defaultSize={defaultLayout[2]} minSize={50}>
 					<ChatDisplay
 						items={messages}
 						selectedConversation={selectedConversation}

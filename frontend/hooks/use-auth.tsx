@@ -16,6 +16,7 @@ import {
 	useContext,
 	createContext,
 	ReactNode,
+	useLayoutEffect,
 } from "react";
 
 interface AuthContextType {
@@ -46,7 +47,42 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 	const pathname = usePathname();
 	const redirectURL = encodeURIComponent(pathname);
 	const publicPaths = ["/auth/login", "/auth/register"];
+	const verifyToken = async () => {
+		try {
+			console.log("Verifying token");
+			const user_access_token = getCookie("access_token") as string;
+			if (!user_access_token) {
+				await refreshTokens();
+			}
 
+			// Optionally, call an endpoint to verify the token's validity
+			const response = await fetchProfile();
+			if (!response.ok) {
+				throw new Error("Invalid token");
+			}
+
+			const userData: IAPIResponse<IProfileResponse> = await response.json();
+
+			setUser(userData.data);
+			setAccessToken(user_access_token);
+			setIsAuthenticated(true);
+			if (publicPaths.includes(pathname)) {
+				if (userData.data.user_role === "admin") {
+					router.push("/admin");
+				} else {
+					router.push("/user/chat");
+				}
+			}
+		} catch (error) {
+			console.error("Token verification failed:", error);
+			setUser(null);
+			setAccessToken("");
+			setIsAuthenticated(false);
+			setIsLoggedOut(true);
+		} finally {
+			setLoading(false);
+		}
+	};
 	const refreshTokens = async () => {
 		try {
 			const response = await fetch(
@@ -78,41 +114,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 		}
 	};
 	useEffect(() => {
-		const verifyToken = async () => {
-			try {
-				const user_access_token = getCookie("access_token") as string;
-				if (!user_access_token) {
-					await refreshTokens();
-				}
-
-				// Optionally, call an endpoint to verify the token's validity
-				const response = await fetchProfile();
-				if (!response.ok) {
-					throw new Error("Invalid token");
-				}
-
-				const userData: IAPIResponse<IProfileResponse> = await response.json();
-
-				setUser(userData.data);
-				setAccessToken(user_access_token);
-				setIsAuthenticated(true);
-
-				if (userData.data.user_role === "admin") {
-					router.push("/admin");
-				} else {
-					router.push("/user");
-				}
-			} catch (error) {
-				console.error("Token verification failed:", error);
-				setUser(null);
-				setAccessToken("");
-				setIsAuthenticated(false);
-				setIsLoggedOut(true);
-			} finally {
-				setLoading(false);
-			}
-		};
-
+		verifyToken();
+	}, [pathname]);
+	useLayoutEffect(() => {
 		const intervalId = setInterval(() => {
 			verifyToken();
 		}, 300000);
@@ -122,16 +126,17 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 		};
 	}, [router, pathname]);
 
-	useEffect(() => {
+	useLayoutEffect(() => {
 		if (isLoggedOut && !publicPaths.includes(pathname)) {
 			router.push(`/auth/login?redirect=${redirectURL}`);
 			setIsLoggedOut(false);
 		}
 	}, [isLoggedOut, pathname, router, redirectURL]);
 
-	useEffect(() => {
+	useLayoutEffect(() => {
 		async function loadUserFromToken() {
 			try {
+				console.log("Loading user from token");
 				const user_access_token = getCookie("access_token") as string;
 				if (!user_access_token) {
 					await refreshTokens();
@@ -142,11 +147,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 					throw new Error("Invalid token");
 				}
 				const userData: IAPIResponse<IProfileResponse> = await response.json();
-				// if (userData.data.user_role === "admin") {
-				// 	router.push("/admin");
-				// } else {
-				// 	router.push("/user");
-				// }
+				if (publicPaths.includes(pathname)) {
+					if (userData.data.user_role === "admin") {
+						router.push("/admin");
+					} else {
+						router.push("/user/chat");
+					}
+				}
 				setAccessToken(user_access_token);
 				setUser(userData.data);
 				setIsAuthenticated(true);
@@ -185,7 +192,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 				if (userData.data.user_role === "admin") {
 					router.push("/admin");
 				} else {
-					router.push("/user");
+					router.push("/user/chat");
 				}
 			} else {
 				router.push(path);
@@ -226,6 +233,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 			throw new Error("Something wrong happened");
 		}
 	};
+
+	if (loading) {
+		return <div>Loading...</div>;
+	}
 
 	return (
 		<AuthContext.Provider

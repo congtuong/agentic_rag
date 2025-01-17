@@ -49,8 +49,12 @@ const fetchRegister = async (body: IRegisterFormValues) => {
 
 const fetchWithToken = async (url: string, method: string, body?: any) => {
 	const header = new Headers();
+	const token = getCookie("access_token");
+	if (!token) {
+		throw new Error("No token found");
+	}
 	header.append("content-type", "application/json");
-	header.append("authorization", `Bearer ${getCookie("access_token")}`);
+	header.append("authorization", `Bearer ${token}`);
 
 	const response = await fetch(url, {
 		method,

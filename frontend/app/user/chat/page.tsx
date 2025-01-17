@@ -7,7 +7,7 @@ const UserPage = () => {
 	const defaultLayout = layout ? JSON.parse(layout.value) : undefined;
 	const defaultCollapsed = collapsed ? JSON.parse(collapsed.value) : undefined;
 	return (
-		<div>
+		<div className="h-screen">
 			<Conversations
 				defaultLayout={defaultLayout}
 				defaultCollapsed={defaultCollapsed}
