@@ -5,7 +5,8 @@ services:
     container_name: postgres_proj
     image: postgres:lastest
     volumes:
-      - ../postgres:/workspace/postgres
+      # - ../postgres:/workspace/postgres
+      - ./postgres.sql:/docker-entrypoint-initdb.d/postgres.sql
     ports:
       - "5432:5432"
     environment:

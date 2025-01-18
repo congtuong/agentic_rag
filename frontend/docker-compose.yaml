@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  frontend-proj:
+    build: .
+    container_name: frontend_proj
+    ports:
+      - "30000:3000"
+    networks:
+      - proj
+
+networks:
+  proj:
+    external: true

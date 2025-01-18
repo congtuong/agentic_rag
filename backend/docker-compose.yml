@@ -1,0 +1,15 @@
+version: "3.8"
+services:
+  backend-proj:
+    build: .
+    container_name: backend_proj
+    ports:
+      - "35000:35000"
+    volumes:
+      - .:/app
+    networks:
+      - proj
+
+networks:
+  proj:
+    external: true

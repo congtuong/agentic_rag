@@ -1,6 +1,21 @@
 version: "3.8"
 
 services:
+  # postgres-proj:
+  #   container_name: postgres_proj
+  #   image: postgres:lastest
+  #   volumes:
+  #     - ../postgres:/workspace/postgres
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     POSTGRES_USER: proj
+  #     POSTGRES_PASSWORD: proj
+  #     POSTGRES_DB: proj
+
+  #   networks:
+  #     - proj
+
   etcd-proj:
     container_name: milvus-etcd-proj
     image: quay.io/coreos/etcd:v3.5.14
@@ -76,7 +91,63 @@ services:
       - "etcd-proj"
       - "minio-proj"
 
+  elastic-proj:
+    es-proj:
+      image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+      container_name: es_proj
+      ports:
+        - 35101:9200
+      deploy:
+        resources:
+          limits:
+            memory: 4GB
+      environment:
+        - ELASTIC_PASSWORD=admin
+        - bootstrap.memory_lock=true
+        - xpack.security.enabled=false
+        - discovery.type=single-node
+      networks:
+        - proj
+      mem_limit: 34359738368
+      ulimits:
+        memlock:
+          soft: -1
+          hard: -1
+      healthcheck:
+        test:
+          [
+            "CMD-SHELL",
+            "curl -s --cacert config/certs/ca/ca.crt https://localhost:9200 | grep -q 'missing authentication credentials'",
+          ]
+        interval: 10s
+        timeout: 10s
+        retries: 120
+
+  backend-proj:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend_proj
+    ports:
+      - "35000:35000"
+    volumes:
+      - .:/app
+    networks:
+      - proj
+    depends_on:
+      - "milvus-standalone-proj"
+
+  frontend-proj:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend_proj
+    ports:
+      - "30000:3000"
+    networks:
+      - proj
+
 networks:
-  default:
+  proj:
     name: proj
-    # external: true
+    external: true
