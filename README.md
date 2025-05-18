@@ -2,6 +2,17 @@
 
 This is my simple RAG AI agent research project. The project is a simple web server that can handle the request from the client and response with the result of the RAG AI agent.
 
+## Project Flow
+
+The basic flow of the application is as follows:
+
+1. **User Login**: Users authenticate and log in to the system.
+2. **Upload Documents**: Users can upload documents that they want the AI agent to learn from.
+3. **Create a Custom Chatbot**: Based on the uploaded documents, multiple personalized RAG-based chatbot is created for each user.
+4. **Interact with the Chatbot**: Users can then chat with their custom chatbot, which leverages retrieval-augmented generation for accurate and context-aware responses.
+
+> This architecture lays the foundation for developing a **SaaS platform** that provides **customized chatbots** for companies or individuals. Each user or organization can have its own isolated chatbot environment powered by the documents they upload.
+
 ## System overview
 
 This project contains 5 main parts:
